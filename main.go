@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/nullablenone/go-news-api/config"
-	"github.com/nullablenone/go-news-api/domain/article"
+	"github.com/nullablenone/go-news-api/internal/domain/article"
 	"github.com/nullablenone/go-news-api/routes"
 )
 

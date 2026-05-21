@@ -2,7 +2,7 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/nullablenone/go-news-api/domain/article"
+	"github.com/nullablenone/go-news-api/internal/domain/article"
 )
 
 func SetRoutes(article *article.ArticleHandler) *gin.Engine {
