@@ -8,12 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func ConnectPostgre() (*gorm.DB, error) {
-
-	env, err := NewEnv()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load .env file: %w", err)
-	}
+func ConnectPostgre(env *Env) (*gorm.DB, error) {
 
 	// dsn := "host=%s user=%s password=%s dbname=%s port=%s sslmode=%s"
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", env.DBHost, env.DBUser, env.DBPass, env.DBName, env.DBPort, env.DBSSLMode)

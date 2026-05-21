@@ -13,6 +13,7 @@ type Env struct {
 	DBName    string
 	DBPort    string
 	DBSSLMode string
+	JWTSecret string
 }
 
 func NewEnv() (*Env, error) {
@@ -27,6 +28,7 @@ func NewEnv() (*Env, error) {
 		DBName:    os.Getenv("DB_NAME"),
 		DBPort:    os.Getenv("DB_PORT"),
 		DBSSLMode: os.Getenv("DB_SSLMODE"),
+		JWTSecret: os.Getenv("JWT_SECRET"),
 	}
 
 	return &env, nil
