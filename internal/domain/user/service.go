@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/nullablenone/go-news-api/config"
-	"github.com/nullablenone/go-news-api/pkg/utils/jwt"
+	"github.com/nullablenone/go-news-api/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -37,7 +37,7 @@ func (s *userService) Register(req RegisterRequest) (User, error) {
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: string(hashedPassword),
-		Role:     "user", 
+		Role:     "user",
 	}
 
 	// 2. Simpan ke database
@@ -63,7 +63,7 @@ func (s *userService) Login(req LoginRequest) (string, error) {
 	}
 
 	// 3. Generate Token JWT jika password cocok
-	token, err := jwt.GenerateJWT(user.ID, user.Role, s.env.JWTSecret)
+	token, err := utils.GenerateJWT(user.ID, user.Role, s.env.JWTSecret)
 	if err != nil {
 		return "", err
 	}
