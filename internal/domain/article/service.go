@@ -1,9 +1,10 @@
 package article
 
 type ArticleService interface {
-	CreateArticle(req CreateArticleRequest) (Article, error)
+	CreateArticle(authorID uint, req CreateArticleRequest) (Article, error)
 	GetAllArticles() ([]Article, error)
 	GetArticleByID(id uint) (Article, error)
+	GetArticleBySlug(slug string) (Article, error) // Tambahan untuk Public API
 	UpdateArticle(id uint, req UpdateArticleRequest) (Article, error)
 	DeleteArticle(id uint) error
 }
@@ -16,11 +17,15 @@ func NewArticleService(repo ArticleRepository) ArticleService {
 	return &articleService{repo: repo}
 }
 
-func (s *articleService) CreateArticle(req CreateArticleRequest) (Article, error) {
+func (s *articleService) CreateArticle(authorID uint, req CreateArticleRequest) (Article, error) {
 	article := Article{
-		Title:   req.Title,
-		Slug:    req.Slug,
-		Content: req.Content,
+		Title:    req.Title,
+		Slug:     req.Slug,
+		Summary:  req.Summary,
+		Category: req.Category,
+		ReadTime: req.ReadTime,
+		AuthorID: authorID, 
+		Content:  req.Content,
 	}
 
 	err := s.repo.Create(&article)
@@ -28,7 +33,8 @@ func (s *articleService) CreateArticle(req CreateArticleRequest) (Article, error
 		return Article{}, err
 	}
 
-	return article, nil
+	// Ambil ulang data artikel agar object Relasi Author ter-load sempurna untuk respon
+	return s.repo.FindByID(article.ID)
 }
 
 func (s *articleService) GetAllArticles() ([]Article, error) {
@@ -39,16 +45,21 @@ func (s *articleService) GetArticleByID(id uint) (Article, error) {
 	return s.repo.FindByID(id)
 }
 
+func (s *articleService) GetArticleBySlug(slug string) (Article, error) {
+	return s.repo.FindBySlug(slug)
+}
+
 func (s *articleService) UpdateArticle(id uint, req UpdateArticleRequest) (Article, error) {
-	// Cek apakah artikel ada
 	article, err := s.repo.FindByID(id)
 	if err != nil {
 		return Article{}, err
 	}
 
-	// Update data field-nya
 	article.Title = req.Title
 	article.Slug = req.Slug
+	article.Summary = req.Summary
+	article.Category = req.Category
+	article.ReadTime = req.ReadTime
 	article.Content = req.Content
 
 	err = s.repo.Update(&article)
@@ -60,7 +71,6 @@ func (s *articleService) UpdateArticle(id uint, req UpdateArticleRequest) (Artic
 }
 
 func (s *articleService) DeleteArticle(id uint) error {
-	// Cek terlebih dahulu apakah artikel ada sebelum dihapus
 	_, err := s.repo.FindByID(id)
 	if err != nil {
 		return err

@@ -36,8 +36,8 @@ func main() {
 	userHandler := user.NewUserHandler(userService)
 
 	router := routes.SetRoutes(env, articleHandler, userHandler)
-	if err = router.Run(":3333"); err != nil {
-		log.Fatalf("failed to start HTTP server on :3333: %v", err)
+	if err = router.Run(":8888"); err != nil {
+		log.Fatalf("failed to start HTTP server on :8888: %v", err)
 	}
 
 }

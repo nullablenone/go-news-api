@@ -16,37 +16,59 @@ func NewArticleHandler(service ArticleService) *ArticleHandler {
 }
 
 func (h *ArticleHandler) CreateArticle(c *gin.Context) {
-	var req CreateArticleRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":  "Data tidak valid",
-			"detail": err.Error(),
-		})
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak terautorisasi"})
 		return
 	}
 
-	article, err := h.service.CreateArticle(req)
+	var req CreateArticleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Data tidak valid", "detail": err.Error()})
+		return
+	}
+
+	// Oper userID (uint) ke service
+	article, err := h.service.CreateArticle(userID.(uint), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Gagal menyimpan artikel",
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan artikel"})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Artikel berhasil dibuat",
-		"data": gin.H{
-			"id":         article.ID,
-			"title":      article.Title,
-			"slug":       article.Slug,
-			"content":    article.Content,
-			"created_at": article.CreatedAt,
-		},
+		"data":    ToArticleResponse(article), 
 	})
 }
 
-// GetArticles untuk list semua artikel (Private)
+func (h *ArticleHandler) UpdateArticle(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
+		return
+	}
+
+	var req UpdateArticleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Data tidak valid", "detail": err.Error()})
+		return
+	}
+
+	article, err := h.service.UpdateArticle(uint(id), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Artikel berhasil diperbarui",
+		"data":    ToArticleResponse(article),
+	})
+}
+
+
 func (h *ArticleHandler) GetArticles(c *gin.Context) {
 	articles, err := h.service.GetAllArticles()
 	if err != nil {
@@ -54,12 +76,14 @@ func (h *ArticleHandler) GetArticles(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": articles,
-	})
+	var response []ArticleResponse
+	for _, a := range articles {
+		response = append(response, ToArticleResponse(a))
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": response})
 }
 
-// GetArticle untuk mengambil detail satu artikel berdasarkan ID 
 func (h *ArticleHandler) GetArticle(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -74,38 +98,7 @@ func (h *ArticleHandler) GetArticle(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": article,
-	})
-}
-
-func (h *ArticleHandler) UpdateArticle(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
-		return
-	}
-
-	var req UpdateArticleRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":  "Data tidak valid",
-			"detail": err.Error(),
-		})
-		return
-	}
-
-	article, err := h.service.UpdateArticle(uint(id), req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Artikel berhasil diperbarui",
-		"data":    article,
-	})
+	c.JSON(http.StatusOK, gin.H{"data": ToArticleResponse(article)})
 }
 
 func (h *ArticleHandler) DeleteArticle(c *gin.Context) {
@@ -118,11 +111,37 @@ func (h *ArticleHandler) DeleteArticle(c *gin.Context) {
 
 	err = h.service.DeleteArticle(uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus artikel atau data tidak ditemukan"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus artikel"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Artikel berhasil dihapus",
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Artikel berhasil dihapus"})
+}
+
+
+func (h *ArticleHandler) ListArticles(c *gin.Context) {
+	articles, err := h.service.GetAllArticles()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data artikel"})
+		return
+	}
+
+	var response []ArticleResponse
+	for _, a := range articles {
+		response = append(response, ToArticleResponse(a))
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": response})
+}
+
+func (h *ArticleHandler) GetArticleBySlug(c *gin.Context) {
+	slug := c.Param("slug")
+
+	article, err := h.service.GetArticleBySlug(slug)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Artikel tidak ditemukan"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": ToArticleResponse(article)})
 }

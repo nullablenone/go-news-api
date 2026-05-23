@@ -11,11 +11,19 @@ import (
 func SetRoutes(env *config.Env, article *article.ArticleHandler, user *user.UserHandler) *gin.Engine {
 	router := gin.Default()
 
-	// Auth Endpoints
+	// Public
 	router.POST("/register", user.Register)
 	router.POST("/login", user.Login)
 
-	// Admin Private Endpoints
+	// Private (role: user, admin)
+	publicArticleRoutes := router.Group("/public")
+	publicArticleRoutes.Use(middleware.AuthMiddleware(env.JWTSecret), middleware.RoleMiddleware("user", "admin"))
+	{
+		publicArticleRoutes.GET("/articles", article.ListArticles)
+		publicArticleRoutes.GET("/articles/:slug", article.GetArticleBySlug)
+	}
+
+	// Private (role: admin)
 	adminRoutes := router.Group("/admin")
 	adminRoutes.Use(middleware.AuthMiddleware(env.JWTSecret), middleware.RoleMiddleware("admin"))
 	{
