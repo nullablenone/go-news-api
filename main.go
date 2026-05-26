@@ -13,21 +13,26 @@ func main() {
 
 	env, err := config.NewEnv()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Inisialisasi Env file Gagal: %v", err)
 	}
 
 	db, err := config.ConnectPostgre(env)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Inisialisasi Postgre Gagal: %v", err)
+	}
+
+	rdb, err := config.ConnectRedis(env)
+	if err != nil {
+		log.Fatalf("Inisialisasi Redis Gagal: %v", err)
 	}
 
 	if err = db.AutoMigrate(article.Article{}, user.User{}); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Gagal membuat migrasi: %v", err)
 	}
 
 	// Article Wiring
 	articleRepo := article.NewArticleRepository(db)
-	articleService := article.NewArticleService(articleRepo)
+	articleService := article.NewArticleService(articleRepo, rdb)
 	articleHandler := article.NewArticleHandler(articleService)
 
 	// User Wiring

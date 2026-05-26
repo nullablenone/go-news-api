@@ -1,20 +1,31 @@
 package article
 
+import (
+	"context"
+	"log"
+
+	"github.com/redis/go-redis/v9"
+)
+
 type ArticleService interface {
 	CreateArticle(authorID uint, req CreateArticleRequest) (Article, error)
 	GetAllArticles() ([]Article, error)
 	GetArticleByID(id uint) (Article, error)
-	GetArticleBySlug(slug string) (Article, error) // Tambahan untuk Public API
+	GetArticleBySlug(slug string) (Article, error)
 	UpdateArticle(id uint, req UpdateArticleRequest) (Article, error)
 	DeleteArticle(id uint) error
 }
 
 type articleService struct {
 	repo ArticleRepository
+	rdb  *redis.Client
 }
 
-func NewArticleService(repo ArticleRepository) ArticleService {
-	return &articleService{repo: repo}
+func NewArticleService(repo ArticleRepository, rdb *redis.Client) ArticleService {
+	return &articleService{
+		repo: repo,
+		rdb:  rdb,
+	}
 }
 
 func (s *articleService) CreateArticle(authorID uint, req CreateArticleRequest) (Article, error) {
@@ -24,7 +35,7 @@ func (s *articleService) CreateArticle(authorID uint, req CreateArticleRequest) 
 		Summary:  req.Summary,
 		Category: req.Category,
 		ReadTime: req.ReadTime,
-		AuthorID: authorID, 
+		AuthorID: authorID,
 		Content:  req.Content,
 	}
 
@@ -33,20 +44,56 @@ func (s *articleService) CreateArticle(authorID uint, req CreateArticleRequest) 
 		return Article{}, err
 	}
 
-	// Ambil ulang data artikel agar object Relasi Author ter-load sempurna untuk respon
-	return s.repo.FindByID(article.ID)
+	res, err := s.repo.FindByID(article.ID)
+	if err == nil {
+		s.clearArticleCache("")
+	}
+
+	return res, err
 }
 
 func (s *articleService) GetAllArticles() ([]Article, error) {
-	return s.repo.FindAll()
+	ctx := context.Background()
+	var articles []Article
+
+	// Panggilan cache menjadi sangat ringkas dan bersih
+	if s.getCache(ctx, cacheKeyAllArticles, &articles) {
+		log.Println("====== [REDIS] Cache Hit: Mengambil semua artikel dari Redis ======")
+		return articles, nil
+	}
+
+	log.Println("====== [DB] Cache Miss: Mengambil semua artikel dari PostgreSQL ======")
+	articles, err := s.repo.FindAll()
+	if err != nil {
+		return nil, err
+	}
+
+	s.setCache(ctx, cacheKeyAllArticles, articles)
+	return articles, nil
+}
+
+func (s *articleService) GetArticleBySlug(slug string) (Article, error) {
+	ctx := context.Background()
+	cacheKey := cacheKeyArticlePrefix + slug
+	var article Article
+
+	if s.getCache(ctx, cacheKey, &article) {
+		log.Printf("====== [REDIS] Cache Hit: Mengambil artikel slug [%s] dari Redis ======", slug)
+		return article, nil
+	}
+
+	log.Printf("====== [DB] Cache Miss: Mengambil artikel slug [%s] dari PostgreSQL ======", slug)
+	article, err := s.repo.FindBySlug(slug)
+	if err != nil {
+		return Article{}, err
+	}
+
+	s.setCache(ctx, cacheKey, article)
+	return article, nil
 }
 
 func (s *articleService) GetArticleByID(id uint) (Article, error) {
 	return s.repo.FindByID(id)
-}
-
-func (s *articleService) GetArticleBySlug(slug string) (Article, error) {
-	return s.repo.FindBySlug(slug)
 }
 
 func (s *articleService) UpdateArticle(id uint, req UpdateArticleRequest) (Article, error) {
@@ -54,6 +101,8 @@ func (s *articleService) UpdateArticle(id uint, req UpdateArticleRequest) (Artic
 	if err != nil {
 		return Article{}, err
 	}
+
+	oldSlug := article.Slug
 
 	article.Title = req.Title
 	article.Slug = req.Slug
@@ -67,13 +116,25 @@ func (s *articleService) UpdateArticle(id uint, req UpdateArticleRequest) (Artic
 		return Article{}, err
 	}
 
+	s.clearArticleCache(oldSlug)
+	if oldSlug != req.Slug {
+		s.clearArticleCache(req.Slug)
+	}
+
 	return article, nil
 }
 
 func (s *articleService) DeleteArticle(id uint) error {
-	_, err := s.repo.FindByID(id)
+	article, err := s.repo.FindByID(id)
 	if err != nil {
 		return err
 	}
-	return s.repo.Delete(id)
+
+	err = s.repo.Delete(id)
+	if err != nil {
+		return err
+	}
+
+	s.clearArticleCache(article.Slug)
+	return nil
 }
