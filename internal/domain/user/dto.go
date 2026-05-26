@@ -14,3 +14,12 @@ type LoginRequest struct {
 type LoginResponse struct {
 	Token string `json:"token"`
 }
+
+type RegisterResponse struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+func ToRegisterResponse(u User) RegisterResponse {
+	return RegisterResponse{Name: u.Name, Email: u.Email}
+}

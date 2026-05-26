@@ -29,12 +29,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Registrasi berhasil",
-		"data": gin.H{
-			"id":    user.ID,
-			"name":  user.Name,
-			"email": user.Email,
-			"role":  user.Role,
-		},
+		"data":    ToRegisterResponse(user),
 	})
 }
 
