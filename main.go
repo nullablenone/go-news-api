@@ -30,6 +30,9 @@ func main() {
 		log.Fatalf("Gagal membuat migrasi: %v", err)
 	}
 
+	// Seeder
+	user.RunAdminSeeder(db)
+
 	// Article Wiring
 	articleRepo := article.NewArticleRepository(db)
 	articleService := article.NewArticleService(articleRepo, rdb)
