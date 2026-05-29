@@ -1,0 +1,284 @@
+{
+  "info": {
+    "_postman_id": "1bd82d43-93aa-48e3-ad85-db6751ecbd38",
+    "name": "go-news-api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "33339350"
+  },
+  "item": [
+    {
+      "name": "auth - private",
+      "item": [
+        {
+          "name": "register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"muhamad yesa\",\r\n    \"email\": \"yesa@gmail.com\",\r\n    \"password\": \"yesa9090\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8888/register",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"admin@news.com\",\r\n    \"password\": \"#admin123\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8888/login",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "public - private",
+      "item": [
+        {
+          "name": "ambil semua artikel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8888/public/articles",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "public",
+                "articles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ambil artikel dengan slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8888/public/articles/programmer-golang",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "public",
+                "articles",
+                "programmer-golang"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "admin - private",
+      "item": [
+        {
+          "name": "mengambil semua artikel",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMCwicm9sZSI6ImFkbWluIiwiZXhwIjoxNzgwMTI0NDk0LCJpYXQiOjE3ODAwMzgwOTR9.1eBnLdO5mP29e_SUp9i4fglCxt4sjOIB6WtEm3uL6yQ",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8888/admin/articles",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "admin",
+                "articles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "mengambil artikel dengan id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMCwicm9sZSI6ImFkbWluIiwiZXhwIjoxNzgwMTI0NDk0LCJpYXQiOjE3ODAwMzgwOTR9.1eBnLdO5mP29e_SUp9i4fglCxt4sjOIB6WtEm3uL6yQ",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "localhost:8888/admin/article/3",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "admin",
+                "article",
+                "3"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "membuat artikel",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMCwicm9sZSI6ImFkbWluIiwiZXhwIjoxNzgwMTI0NDk0LCJpYXQiOjE3ODAwMzgwOTR9.1eBnLdO5mP29e_SUp9i4fglCxt4sjOIB6WtEm3uL6yQ",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"muhamad yesa\",\r\n  \"slug\": \"muhamad-yesa\",\r\n  \"summary\": \"LLL ive into constructing high-performance modular APIs. Learn how to separate concerns, implement robust Role-Based Access Control (RBAC), and optimize database performance.\",\r\n  \"category\": \"Architecture & Security\",\r\n  \"read_time\": \"19 min read\",\r\n  \"content\": [\r\n    {\r\n      \"type\": \"paragraph\",\r\n      \"text\": \"LLLLL small, everything seems easy to manage. But as feature requests pile up, files grow longer, and developers step on each other's toes, codebase health degrades. The solution? Clean Architecture.\"\r\n    },\r\n    {\r\n      \"type\": \"paragraph\",\r\n      \"text\": \"Clean Architecture separates code into independent concentric circles, placing core business logic at the center and keeping database schemas, frameworks, and APIs at the periphery.\"\r\n    },\r\n    {\r\n      \"type\": \"heading\",\r\n      \"level\": 2,\r\n      \"text\": \"The Clean Architecture Layering in Go\"\r\n    },\r\n    {\r\n      \"type\": \"list\",\r\n      \"items\": [\r\n        \"Domain/Entities: Defines plain objects and core interfaces.\",\r\n        \"Usecase/Service: Contains business rules and processes.\",\r\n        \"Repository/Delivery: The outer layer implementing actual SQL and HTTP handlers.\"\r\n      ]\r\n    },\r\n    {\r\n      \"type\": \"code\",\r\n      \"language\": \"go\",\r\n      \"code\": \"// domain/user.go\\npackage domain\\n\\ntype User struct {\\n    ID    int64  `json:\\\"id\\\"`\\n    Email string `json:\\\"email\\\"`\\n    Role  string `json:\\\"role\\\"`\\n}\"\r\n    }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8888/admin/article",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "admin",
+                "article"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "mengupdate artikel",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMCwicm9sZSI6ImFkbWluIiwiZXhwIjoxNzgwMTI0NDk0LCJpYXQiOjE3ODAwMzgwOTR9.1eBnLdO5mP29e_SUp9i4fglCxt4sjOIB6WtEm3uL6yQ",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"muhamad-y\",\r\n  \"slug\": \"muhamad-y\",\r\n  \"summary\": \"LLL ive into constructing high-performance modular APIs. Learn how to separate concerns, implement robust Role-Based Access Control (RBAC), and optimize database performance.\",\r\n  \"category\": \"Architecture & Security\",\r\n  \"read_time\": \"19 min read\",\r\n  \"content\": [\r\n    {\r\n      \"type\": \"paragraph\",\r\n      \"text\": \"LLLLL small, everything seems easy to manage. But as feature requests pile up, files grow longer, and developers step on each other's toes, codebase health degrades. The solution? Clean Architecture.\"\r\n    },\r\n    {\r\n      \"type\": \"paragraph\",\r\n      \"text\": \"Clean Architecture separates code into independent concentric circles, placing core business logic at the center and keeping database schemas, frameworks, and APIs at the periphery.\"\r\n    },\r\n    {\r\n      \"type\": \"heading\",\r\n      \"level\": 2,\r\n      \"text\": \"The Clean Architecture Layering in Go\"\r\n    },\r\n    {\r\n      \"type\": \"list\",\r\n      \"items\": [\r\n        \"Domain/Entities: Defines plain objects and core interfaces.\",\r\n        \"Usecase/Service: Contains business rules and processes.\",\r\n        \"Repository/Delivery: The outer layer implementing actual SQL and HTTP handlers.\"\r\n      ]\r\n    },\r\n    {\r\n      \"type\": \"code\",\r\n      \"language\": \"go\",\r\n      \"code\": \"// domain/user.go\\npackage domain\\n\\ntype User struct {\\n    ID    int64  `json:\\\"id\\\"`\\n    Email string `json:\\\"email\\\"`\\n    Role  string `json:\\\"role\\\"`\\n}\"\r\n    }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:8888/admin/article/6",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "admin",
+                "article",
+                "6"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "hapus artikel",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMCwicm9sZSI6ImFkbWluIiwiZXhwIjoxNzgwMTI0NDk0LCJpYXQiOjE3ODAwMzgwOTR9.1eBnLdO5mP29e_SUp9i4fglCxt4sjOIB6WtEm3uL6yQ",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "localhost:8888/admin/article/6",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "admin",
+                "article",
+                "6"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

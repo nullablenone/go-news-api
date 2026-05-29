@@ -5,21 +5,24 @@ Read this in [Bahasa Indonesia](README.id.md) 🇮🇩
 Go News API is a high-performance RESTful backend designed for news portals, blogs. Built with **Golang**, this project adheres to **Clean Architecture** principles to ensure codebase scalability and maintainability.
 
 ## Key Features
-* **Clean Architecture Layering**: Clear separation of concerns between *Domain*, *Repository*, *Service*, and *Handler*.
-* **Dynamic Content Storage**: Utilizes `[]map[string]interface{}` mapped to PostgreSQL's `jsonb` column, making it highly adaptable to any modern frontend block-editor payloads (e.g., Editor.js, Quill).
-* **Blazing Fast Redis Caching**: Implements a *Cache-Aside* pattern on public endpoints to handle high-traffic spikes seamlessly, complete with automated cache invalidation upon admin CRUD operations.
-* **Authentication & Authorization**: Secured via JWT Tokens and Role-Based Access Control (RBAC).
-* **Separation of Routes**: Dedicated public routes for readers (Client UI) and protected private routes for the CMS dashboard (Admin UI).
-* **Frontend Ready**: Fully configured CORS to safely accept requests from frameworks like React, Vue, or Angular.
+
+- **Clean Architecture Layering**: Clear separation of concerns between _Domain_, _Repository_, _Service_, and _Handler_.
+- **Dynamic Content Storage**: Utilizes `[]map[string]interface{}` mapped to PostgreSQL's `jsonb` column, making it highly adaptable to any modern frontend block-editor payloads (e.g., Editor.js, Quill).
+- **Blazing Fast Redis Caching**: Implements a _Cache-Aside_ pattern on public endpoints to handle high-traffic spikes seamlessly, complete with automated cache invalidation upon admin CRUD operations.
+- **Authentication & Authorization**: Secured via JWT Tokens and Role-Based Access Control (RBAC).
+- **Separation of Routes**: Dedicated public routes for readers (Client UI) and protected private routes for the CMS dashboard (Admin UI).
+- **Frontend Ready**: Fully configured CORS to safely accept requests from frameworks like React, Vue, or Angular.
 
 ## Tech Stack
-* **Language**: Go (1.25.0)
-* **Web Framework**: [Gin-Gonic](https://gin-gonic.com/)
-* **Database**: PostgreSQL (via [GORM](https://gorm.io/))
-* **Caching**: Redis (via `go-redis/v9`)
-* **Security**: JWT (`golang-jwt/v5`) & Bcrypt
+
+- **Language**: Go (1.25.0)
+- **Web Framework**: [Gin-Gonic](https://gin-gonic.com/)
+- **Database**: PostgreSQL (via [GORM](https://gorm.io/))
+- **Caching**: Redis (via `go-redis/v9`)
+- **Security**: JWT (`golang-jwt/v5`) & Bcrypt
 
 ## Project Structure
+
 ```text
 .
 ├── config/              # Env configs, Database Connections (PostgreSQL & Redis)
@@ -32,18 +35,15 @@ Go News API is a high-performance RESTful backend designed for news portals, blo
 ├── routes/              # Gin routing & CORS setup
 ├── main.go              # Application entry point
 └── .env                 # Environment variables
-````
+```
 
 ## Getting Started
 
 ### 1. Prerequisites
 
 - [Go](https://golang.org/dl/) installed
-    
 - [PostgreSQL](https://www.postgresql.org/) running
-    
 - [Docker](https://www.docker.com/) (to easily run Redis)
-    
 
 ### 2. Environment Setup
 
@@ -88,16 +88,37 @@ The server will start at `http://localhost:8888`. The database tables will be mi
 ## API Endpoints (Brief Overview)
 
 **Authentication (Public):**
-* `POST /register` - Register a new user account
-* `POST /login` - Authenticate user and receive a JWT
+
+- `POST /register` - Register a new user account
+- `POST /login` - Authenticate user and receive a JWT
 
 **Public / Reader Website (No Token Required - Cache-Aside Pattern):**
-* `GET /public/articles` - Retrieve a list of all articles for readers
-* `GET /public/articles/:slug` - Retrieve article details by its slug
+
+- `GET /public/articles` - Retrieve a list of all articles for readers
+- `GET /public/articles/:slug` - Retrieve article details by its slug
 
 **Admin / CMS Dashboard (Requires Bearer Token, Role: 'admin'):**
-* `GET /admin/articles` - Retrieve all articles (for admin data tables)
-* `GET /admin/article/:id` - Retrieve specific article details by ID
-* `POST /admin/article` - Create a new article (Automatically invalidates public cache)
-* `PUT /admin/article/:id` - Update an existing article (Automatically invalidates public cache)
-* `DELETE /admin/article/:id` - Delete an article (Automatically invalidates public cache)
+
+- `GET /admin/articles` - Retrieve all articles (for admin data tables)
+- `GET /admin/article/:id` - Retrieve specific article details by ID
+- `POST /admin/article` - Create a new article (Automatically invalidates public cache)
+- `PUT /admin/article/:id` - Update an existing article (Automatically invalidates public cache)
+- `DELETE /admin/article/:id` - Delete an article (Automatically invalidates public cache)
+
+## Default Admin Credentials
+
+This application includes a modular auto-seeder feature. If the database is empty, the system will automatically create a default admin account upon startup. Use the following account to login and test the `/admin/*` endpoints:
+
+- **Email:** `admin@news.com`
+- **Password:** `admin123`
+
+## API Testing with Postman
+
+To simplify endpoint testing, this repository includes a Postman Collection file.
+
+**How to Use:**
+
+1. Open the [Postman](https://www.postman.com/) application.
+2. Click the **Import** button in the top left corner.
+3. Upload the `docs/go-news-api.postman_collection.json` file from this repository.
+4. All API endpoints (Public & Admin) along with their sample JSON payloads are now available and ready to run.
