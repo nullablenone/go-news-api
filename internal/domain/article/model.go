@@ -19,7 +19,7 @@ type Article struct {
 	AuthorID uint      `gorm:"not null"`
 	Author   user.User `gorm:"foreignKey:AuthorID"`
 
-	Content []map[string]interface{} `gorm:"serializer:json;type:jsonb;not null"`
+	Content []map[string]interface{} `gorm:"serializer:json;type:jsonb;index:,type:gin;not null"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
