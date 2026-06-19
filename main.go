@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/gin-gonic/gin"
 	"github.com/nullablenone/go-news-api/config"
 	"github.com/nullablenone/go-news-api/internal/domain/article"
 	"github.com/nullablenone/go-news-api/internal/domain/user"
@@ -10,6 +11,8 @@ import (
 )
 
 func main() {
+
+	gin.SetMode(gin.ReleaseMode)
 
 	env, err := config.NewEnv()
 	if err != nil {
@@ -32,6 +35,7 @@ func main() {
 
 	// Seeder
 	user.RunAdminSeeder(db)
+	// article.RunArticleSeeder(db)
 
 	// Article Wiring
 	articleRepo := article.NewArticleRepository(db)
