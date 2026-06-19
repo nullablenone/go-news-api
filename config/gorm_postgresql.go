@@ -19,6 +19,12 @@ func ConnectPostgre(env *Env) (*gorm.DB, error) {
 		return nil, fmt.Errorf("Error connecting to database: %v", err)
 	}
 
+	sqlDB, err := db.DB()
+	if err == nil {
+		sqlDB.SetMaxOpenConns(50)
+		sqlDB.SetMaxIdleConns(10)
+	}
+
 	log.Println("database connected successfully!")
 
 	return db, nil
