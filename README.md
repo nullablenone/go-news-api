@@ -1,5 +1,7 @@
 # Go News API - Developer Documentation
 
+Read this in [Bahasa Indonesia](README.id.md)
+
 Welcome to the developer documentation for the **Go News API**. This document is specifically written to facilitate future development, onboarding, and codebase maintenance. It focuses on technical details, system architecture, database design, caching flows, and extension guidelines.
 
 ---
@@ -38,61 +40,50 @@ This application is built using **Clean Architecture** patterns, separating conc
 
 ### End-to-End Request Lifecycle
 
-The diagram below showcases the HTTP execution flow. It illustrates how requests are parsed, validated, routed, cached via the **Cache-Aside** pattern, or authorized via the JWT pipeline.
+To keep the system easy to understand, the HTTP execution lifecycle is split into two distinct, simplified flows:
+
+#### 1. Public Read Request Flow (Cache-Aside Pattern)
+This flow is used when retrieving articles. If the data is cached in Redis, it is returned immediately to bypass database queries.
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    actor Client as HTTP Client (Web / Mobile)
-    participant R as Gin Router
-    participant M as Auth & Role Middleware
-    participant H as Domain Handler
-    participant S as Domain Service
-    participant C as Redis Cache
-    participant DB as PostgreSQL (GORM)
-    
-    rect rgb(240, 248, 255)
-        note right of Client: Flow A: Public Read (e.g. GET /public/articles)
-        Client->>R: GET /public/articles
-        R->>H: ListArticles(c)
-        H->>S: GetAllArticles()
-        S->>C: getCache("articles:all")
-        alt Cache Hit
-            C-->>S: Return JSON cache
-            S-->>H: Return deserialized []Article
-            H-->>Client: 200 OK + JSON Response
-        else Cache Miss
-            C-->>S: return nil (Key not found/expired)
-            S->>DB: FindAll() (Preload Author relationship)
-            DB-->>S: Return []Article from SQL
-            S->>C: setCache("articles:all", data, TTL = 1 Hour)
-            S-->>H: Return []Article
-            H-->>Client: 200 OK + JSON Response
-        end
-    end
+    actor Client as Client (Reader)
+    participant API as API Handler
+    participant Cache as Redis
+    participant DB as PostgreSQL
 
-    rect rgb(255, 240, 245)
-        note right of Client: Flow B: Authenticated Admin Write (e.g. POST /admin/article)
-        Client->>R: POST /admin/article + Header [Authorization: Bearer <JWT>]
-        R->>M: AuthMiddleware() (Verify JWT Token Claims)
-        alt Token Signature Invalid or Expired
-            M-->>Client: 401 Unauthorized
-        else Token Valid
-            M->>M: RoleMiddleware("admin") (Verify user role in Gin context)
-            alt Role != "admin"
-                M-->>Client: 403 Forbidden
-            else Role == "admin"
-                M->>H: CreateArticle(c)
-                H->>S: CreateArticle(userID, requestDTO)
-                S->>DB: Create(&article)
-                DB-->>S: Insert into PostgreSQL + Return ID
-                S->>DB: FindByID(newID) (Preload Author details)
-                DB-->>S: Return fully populated Article
-                S->>C: clearArticleCache("") (Deletes "articles:all")
-                S-->>H: Return Article
-                H-->>Client: 201 Created + JSON Response
-            end
-        end
+    Client->>API: GET /public/articles
+    API->>Cache: Check Cache (articles:all)
+    alt Cache Hit
+        Cache-->>Client: Return Cached Articles
+    else Cache Miss
+        API->>DB: Query Articles (Preload Author)
+        DB-->>API: Return Articles
+        API->>Cache: Save to Cache (TTL 1 Hour)
+        API-->>Client: Return Articles
+    end
+```
+
+#### 2. Authenticated Admin Write Request Flow (Auth & Cache Invalidation)
+This flow is triggered when modifying articles. It validates credentials and automatically evicts stale cache entries.
+
+```mermaid
+sequenceDiagram
+    actor Admin as Admin (CMS)
+    participant Mid as Middleware (JWT & Role)
+    participant API as API Handler
+    participant DB as PostgreSQL
+    participant Cache as Redis
+
+    Admin->>Mid: POST /admin/article (with JWT Bearer Token)
+    alt Token Invalid or Role != admin
+        Mid-->>Admin: Return 401 Unauthorized / 403 Forbidden
+    else Token Valid & Role == admin
+        Mid->>API: Forward Authorized Request
+        API->>DB: Save/Update/Delete Article
+        DB-->>API: DB Success (ID Created/Updated)
+        API->>Cache: Clear Cache (articles:all & slug keys)
+        API-->>Admin: Return Success Response (201 Created / 200 OK)
     end
 ```
 

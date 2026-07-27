@@ -1,5 +1,7 @@
 # Go News API - Dokumentasi Pengembang
 
+Baca ini dalam [Bahasa Inggris](README.md)
+
 Selamat datang di dokumentasi pengembang untuk **Go News API**. Dokumen ini ditulis khusus untuk memudahkan pengembangan di masa mendatang, proses onboarding pengembang baru, serta pemeliharaan kode. Dokumentasi ini berfokus pada detail teknis, arsitektur sistem, skema database, mekanisme caching, dan panduan untuk memperluas fitur aplikasi.
 
 ---
@@ -38,62 +40,51 @@ Aplikasi ini menggunakan pola **Clean Architecture** untuk memisahkan tanggung j
 
 ### Siklus Hidup Permintaan HTTP (End-to-End)
 
-Diagram urutan (Mermaid) di bawah ini menunjukkan siklus hidup request pada sistem, memvisualisasikan bagaimana request diproses melalui middleware, diperiksa hak aksesnya, dilayani oleh cache menggunakan pola **Cache-Aside**, atau diproses oleh database PostgreSQL serta memicu invalidasi cache.
+Agar sistem lebih mudah dipahami oleh pengembang, siklus hidup permintaan HTTP dibagi menjadi dua alur yang disederhanakan:
+
+#### 1. Aliran Permintaan Baca Publik (Pola Cache-Aside)
+Alur ini digunakan saat mengambil artikel. Jika data sudah di-cache di Redis, respons akan segera dikembalikan untuk menghindari kueri langsung ke database PostgreSQL.
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    actor Client as HTTP Client (Web / Mobile)
-    participant R as Gin Router
-    participant M as Middleware Auth & Role
-    participant H as Domain Handler
-    participant S as Domain Service
-    participant C as Redis Cache
-    participant DB as PostgreSQL (GORM)
-    
-    rect rgb(240, 248, 255)
-        note right of Client: Aliran A: Public Read (Contoh: GET /public/articles)
-        Client->>R: GET /public/articles
-        R->>H: ListArticles(c)
-        H->>S: GetAllArticles()
-        S->>C: getCache("articles:all")
-        alt Cache Hit
-            C-->>S: Mengembalikan cache JSON
-            S-->>H: Mengembalikan slice []Article hasil deserialisasi
-            H-->>Client: 200 OK + Data JSON
-        else Cache Miss
-            C-->>S: mengembalikan nil (Kunci tidak ditemukan/kedaluwarsa)
-            S->>DB: FindAll() (Memuat relasi Author)
-            DB-->>S: Mengembalikan data []Article dari PostgreSQL
-            S->>C: setCache("articles:all", data, TTL = 1 Jam)
-            S-->>H: Mengembalikan []Article
-            H-->>Client: 200 OK + Data JSON
-        end
-    end
+    actor Client as Client (Reader)
+    participant API as API Handler
+    participant Cache as Redis
+    participant DB as PostgreSQL
 
-    rect rgb(255, 240, 245)
-        note right of Client: Aliran B: Write Rute Admin Terproteksi (Contoh: POST /admin/article)
-        Client->>R: POST /admin/article + Header [Authorization: Bearer <JWT>]
-        R->>M: AuthMiddleware() (Validasi Tanda Tangan JWT)
-        alt Token Tidak Valid atau Kedaluwarsa
-            M-->>Client: 401 Unauthorized
-        else Token Valid
-            M->>M: RoleMiddleware("admin") (Memeriksa peran dalam konteks Gin)
-            alt Peran != "admin"
-                M-->>Client: 403 Forbidden
-            else Peran == "admin"
-                M->>H: CreateArticle(c)
-                H->>S: CreateArticle(userID, requestDTO)
-                S->>DB: Create(&article)
-                DB-->>S: Insert ke DB + Mengisi ID Baru
-                S->>DB: FindByID(newID) (Memuat data Author pendukung)
-                DB-->>S: Mengembalikan data lengkap Article
-                S->>C: clearArticleCache("") (Menghapus cache "articles:all")
-                S-->>H: Mengembalikan data Article
-                H-->>Client: 201 Created + Data JSON
-            end
-        end
+    Client->>API: GET /public/articles
+    API->>Cache: Periksa Cache (articles:all)
+    alt Cache Hit
+        Cache-->>Client: Kembalikan Artikel dari Cache
+    else Cache Miss
+        API->>DB: Kueri Artikel (Memuat Relasi Author)
+        DB-->>API: Kembalikan Artikel
+        API->>Cache: Simpan ke Cache (TTL 1 Jam)
+        API-->>Client: Kembalikan Artikel
     end
+```
+
+#### 2. Aliran Permintaan Tulis Admin Terautentikasi (Otorisasi & Invalidasi Cache)
+Alur ini dipicu saat melakukan mutasi data artikel. Alur ini memvalidasi kredensial pengguna dan secara otomatis menghapus data cache yang usang.
+
+```mermaid
+sequenceDiagram
+    actor Admin as Admin (CMS)
+    participant Mid as Middleware (JWT & Role)
+    participant API as API Handler
+    participant DB as PostgreSQL
+    participant Cache as Redis
+
+         Admin->>Mid: POST /admin/article (dengan JWT Bearer Token)
+         alt Token Tidak Valid atau Peran != admin
+             Mid-->>Admin: Kembalikan 401 Unauthorized / 403 Forbidden
+         else Token Valid & Peran == admin
+             Mid->>API: Teruskan Permintaan Terotorisasi
+             API->>DB: Simpan/Perbarui/Hapus Artikel
+             DB-->>API: DB Sukses (ID Dibuat/Diperbarui)
+             API->>Cache: Bersihkan Cache (Kunci articles:all & slug terkait)
+             API-->>Admin: Kembalikan Respons Sukses (201 Created / 200 OK)
+         end
 ```
 
 ---
@@ -110,7 +101,7 @@ Menyimpan informasi pengguna/admin. Mendukung fitur penghapusan logis (soft dele
 - `Password` (varchar(255), tidak null) - Disimpan dalam bentuk hash Bcrypt.
 - `Role` (varchar(50), default 'user', tidak null) - Menentukan tingkat otorisasi RBAC (`admin` atau `user`).
 - `CreatedAt`, `UpdatedAt` (timestamptz)
-- `DeletedAt` (indeks timestamptz) - Digunakan untuk fitur soft delete GORM.
+- `DeletedAt` (indeks timestamptz) - GORM soft delete support.
 
 ### 2. Entitas Article ([article/model.go](file:///c:/Users/ranis/Project/work/go-news-api/internal/domain/article/model.go))
 Menyimpan data dokumen artikel berita.
@@ -163,7 +154,7 @@ API ini menggunakan mekanisme **Stateless JWT Tokens** untuk keamanan rute.
 
 ### 1. Struktur Token
 - Token dibuat melalui berkas pembantu [utils/jwt.go](file:///c:/Users/ranis/Project/work/go-news-api/internal/utils/jwt.go).
-- Menyimpan klaim kustom: `UserID` and `Role`.
+- Menyimpan klaim kustom: `UserID` dan `Role`.
 - Ditandatangani menggunakan algoritma enkripsi simetris `HS256` dengan kunci rahasia yang diambil dari variabel environment `JWT_SECRET`.
 - Masa kedaluwarsa token: 24 Jam.
 
