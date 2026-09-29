@@ -14,30 +14,30 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token tidak ditemukan, silakan login terlebih dahulu"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Access token tidak ditemukan, silakan login terlebih dahulu"})
 			return
 		}
 
 		// Memisahkan kata "Bearer " dengan string token asli
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		if tokenString == authHeader {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Format token harus 'Bearer <token>'"})
+		accessTokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if accessTokenString == authHeader {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Format access token harus 'Bearer <access_token>'"})
 			return
 		}
 
 		// Parsing dan validasi
-		token, err := jwt.ParseWithClaims(tokenString, &utils.JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
+		accessToken, err := jwt.ParseWithClaims(accessTokenString, &utils.JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
 			return []byte(secret), nil
 		})
 
-		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token tidak valid atau telah kedaluwarsa"})
+		if err != nil || !accessToken.Valid {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Access token tidak valid atau telah kedaluwarsa"})
 			return
 		}
 
-		claims, ok := token.Claims.(*utils.JWTClaims)
+		claims, ok := accessToken.Claims.(*utils.JWTClaims)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Gagal membaca claims pada token"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Gagal membaca claims pada access token"})
 			return
 		}
 
