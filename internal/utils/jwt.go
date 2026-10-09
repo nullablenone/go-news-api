@@ -12,13 +12,14 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-func GenerateJWT(userID uint, role string, secret string) (string, error) {
+func GenerateAccessJWT(userID uint, role string, secret string) (string, error) {
 	claims := JWTClaims{
 		UserID: userID,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			// Token kedaluwarsa dalam 40 menit
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(40 * time.Minute)),
+			// ExpiresAt: jwt.NewNumericDate(time.Now().Add(60 * time.Second)), // test: membuktikan benar expired
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}

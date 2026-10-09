@@ -63,7 +63,7 @@ func (s *userService) Login(req LoginRequest) (string, error) {
 	}
 
 	// 3. Generate Token JWT jika password cocok
-	accessToken, err := utils.GenerateJWT(user.ID, user.Role, s.env.JWTSecret)
+	accessToken, err := utils.GenerateAccessJWT(user.ID, user.Role, s.env.JWTSecret)
 	if err != nil {
 		return "", err
 	}
