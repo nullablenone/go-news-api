@@ -41,6 +41,11 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 			return
 		}
 
+		if claims.TokenType != "access" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token yang digunakan bukan access token"})
+			return
+		}
+
 		// Menyimpan data user_id dan role ke dalam konteks Gin
 		c.Set("user_id", claims.UserID)
 		c.Set("role", claims.Role)

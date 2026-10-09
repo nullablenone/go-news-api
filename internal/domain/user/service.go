@@ -10,7 +10,7 @@ import (
 
 type UserService interface {
 	Register(req RegisterRequest) (User, error)
-	Login(req LoginRequest) (string, error)
+	Login(req LoginRequest) (string, string, error)
 }
 
 type userService struct {
@@ -49,24 +49,29 @@ func (s *userService) Register(req RegisterRequest) (User, error) {
 	return user, nil
 }
 
-func (s *userService) Login(req LoginRequest) (string, error) {
+func (s *userService) Login(req LoginRequest) (string, string, error) {
 	// 1. Cari user berdasarkan email
 	user, err := s.repo.FindByEmail(req.Email)
 	if err != nil {
-		return "", errors.New("email atau password salah")
+		return "", "", errors.New("email atau password salah")
 	}
 
 	// 2. Bandingkan password
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
-		return "", errors.New("email atau password salah")
+		return "", "", errors.New("email atau password salah")
 	}
 
 	// 3. Generate Token JWT jika password cocok
 	accessToken, err := utils.GenerateAccessJWT(user.ID, user.Role, s.env.JWTSecret)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return accessToken, nil
+	refreshToken, err := utils.GenerateAccessJWT(user.ID, user.Role, s.env.JWTSecret)
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
 }
