@@ -62,9 +62,15 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.service.RefreshToken(userID.(uint))
+	refreshTokenVal, exists := c.Get("refresh_token")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token tidak ditemukan"})
+		return
+	}
+
+	accessToken, refreshToken, err := h.service.RefreshToken(userID.(uint), refreshTokenVal.(string))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 

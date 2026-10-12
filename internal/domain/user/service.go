@@ -2,6 +2,7 @@ package user
 
 import (
 	"errors"
+	"time"
 
 	"github.com/nullablenone/go-news-api/config"
 	"github.com/nullablenone/go-news-api/internal/utils"
@@ -11,7 +12,7 @@ import (
 type UserService interface {
 	Register(req RegisterRequest) (User, error)
 	Login(req LoginRequest) (string, string, error)
-	RefreshToken(userID uint) (string, string, error)
+	RefreshToken(userID uint, oldRefreshToken string) (string, string, error)
 }
 
 type userService struct {
@@ -74,26 +75,65 @@ func (s *userService) Login(req LoginRequest) (string, string, error) {
 		return "", "", err
 	}
 
+	// 4. Simpan refresh token ke database (stateful tracking)
+	refreshTokenModel := RefreshToken{
+		UserID:    user.ID,
+		Token:     refreshToken,
+		IsRevoked: false,
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	}
+	if err := s.repo.CreateRefreshToken(&refreshTokenModel); err != nil {
+		return "", "", errors.New("gagal menyimpan refresh token")
+	}
+
 	return accessToken, refreshToken, nil
 }
 
-func (s *userService) RefreshToken(userID uint) (string, string, error) {
+func (s *userService) RefreshToken(userID uint, oldRefreshToken string) (string, string, error) {
 	// 1. Pastikan user masih terdaftar di database
 	user, err := s.repo.FindByID(userID)
 	if err != nil {
 		return "", "", errors.New("user tidak ditemukan")
 	}
 
-	// 2. Generate access token baru dan refresh token baru
+	// 2. Cari token lama di database
+	storedToken, err := s.repo.FindRefreshToken(oldRefreshToken)
+	if err != nil {
+		return "", "", errors.New("refresh token tidak dikenali atau tidak valid")
+	}
+
+	// 3. REUSE DETECTION: jika token lama sudah pernah di-revoke, batalkan seluruh sesi user!
+	if storedToken.IsRevoked {
+		_ = s.repo.RevokeAllUserTokens(userID)
+		return "", "", errors.New("terdeteksi penggunaan ulang token yang sudah dicabut, seluruh sesi telah dibatalkan demi keamanan")
+	}
+
+	// 4. Revoke token lama agar tidak bisa dipakai lagi (Refresh Token Rotation)
+	if err := s.repo.RevokeRefreshToken(oldRefreshToken); err != nil {
+		return "", "", errors.New("gagal mencabut refresh token lama")
+	}
+
+	// 5. Generate sepasang token baru
 	accessToken, err := utils.GenerateAccessJWT(user.ID, user.Role, s.env.JWTSecret)
 	if err != nil {
 		return "", "", err
 	}
 
-	refreshToken, err := utils.GenerateRefreshJWT(user.ID, s.env.JWTSecret)
+	newRefreshToken, err := utils.GenerateRefreshJWT(user.ID, s.env.JWTSecret)
 	if err != nil {
 		return "", "", err
 	}
 
-	return accessToken, refreshToken, nil
+	// 6. Simpan refresh token baru ke database
+	newTokenModel := RefreshToken{
+		UserID:    user.ID,
+		Token:     newRefreshToken,
+		IsRevoked: false,
+		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	}
+	if err := s.repo.CreateRefreshToken(&newTokenModel); err != nil {
+		return "", "", errors.New("gagal menyimpan refresh token baru")
+	}
+
+	return accessToken, newRefreshToken, nil
 }

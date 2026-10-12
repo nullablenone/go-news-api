@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -32,10 +34,17 @@ func GenerateAccessJWT(userID uint, role string, secret string) (string, error) 
 }
 
 func GenerateRefreshJWT(userID uint, secret string) (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	jti := hex.EncodeToString(b)
+
 	claims := JWTClaims{
 		UserID:    userID,
 		TokenType: "refresh",
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        jti,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)), // 7 hari
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},

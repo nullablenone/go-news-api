@@ -29,7 +29,7 @@ func main() {
 		log.Fatalf("Inisialisasi Redis Gagal: %v", err)
 	}
 
-	if err = db.AutoMigrate(article.Article{}, user.User{}); err != nil {
+	if err = db.AutoMigrate(article.Article{}, user.User{}, user.RefreshToken{}); err != nil {
 		log.Fatalf("Gagal membuat migrasi: %v", err)
 	}
 
