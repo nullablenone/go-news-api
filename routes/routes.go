@@ -25,6 +25,13 @@ func SetRoutes(env *config.Env, article *article.ArticleHandler, user *user.User
 	router.POST("/register", user.Register)
 	router.POST("/login", user.Login)
 
+	// Auth (Refresh Token)
+	authRoutes := router.Group("/auth")
+	authRoutes.Use(middleware.RefreshTokenMiddleware(env.JWTSecret))
+	{
+		authRoutes.POST("/refresh", user.RefreshToken)
+	}
+
 	publicArticleRoutes := router.Group("/public")
 	publicArticleRoutes.GET("/articles", article.ListArticles)
 	publicArticleRoutes.GET("/articles/:slug", article.GetArticleBySlug)

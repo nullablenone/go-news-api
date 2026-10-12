@@ -62,6 +62,31 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "refresh token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{refresh_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "localhost:8888/auth/refresh",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },

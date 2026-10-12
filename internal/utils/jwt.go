@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -43,3 +44,20 @@ func GenerateRefreshJWT(userID uint, secret string) (string, error) {
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return refreshToken.SignedString([]byte(secret))
 }
+
+func ValidateToken(tokenString string, secret string) (*JWTClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil
+	})
+	if err != nil || !token.Valid {
+		return nil, errors.New("token tidak valid atau telah kedaluwarsa")
+	}
+
+	claims, ok := token.Claims.(*JWTClaims)
+	if !ok {
+		return nil, errors.New("gagal membaca claims pada token")
+	}
+
+	return claims, nil
+}
+

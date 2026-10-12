@@ -11,6 +11,7 @@ import (
 type UserService interface {
 	Register(req RegisterRequest) (User, error)
 	Login(req LoginRequest) (string, string, error)
+	RefreshToken(userID uint) (string, string, error)
 }
 
 type userService struct {
@@ -68,7 +69,28 @@ func (s *userService) Login(req LoginRequest) (string, string, error) {
 		return "", "", err
 	}
 
-	refreshToken, err := utils.GenerateAccessJWT(user.ID, user.Role, s.env.JWTSecret)
+	refreshToken, err := utils.GenerateRefreshJWT(user.ID, s.env.JWTSecret)
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
+}
+
+func (s *userService) RefreshToken(userID uint) (string, string, error) {
+	// 1. Pastikan user masih terdaftar di database
+	user, err := s.repo.FindByID(userID)
+	if err != nil {
+		return "", "", errors.New("user tidak ditemukan")
+	}
+
+	// 2. Generate access token baru dan refresh token baru
+	accessToken, err := utils.GenerateAccessJWT(user.ID, user.Role, s.env.JWTSecret)
+	if err != nil {
+		return "", "", err
+	}
+
+	refreshToken, err := utils.GenerateRefreshJWT(user.ID, s.env.JWTSecret)
 	if err != nil {
 		return "", "", err
 	}

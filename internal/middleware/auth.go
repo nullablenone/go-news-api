@@ -54,6 +54,52 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 	}
 }
 
+// RefreshTokenMiddleware memvalidasi refresh token JWT dari header Authorization
+func RefreshTokenMiddleware(secret string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Refresh token tidak ditemukan, silakan login terlebih dahulu"})
+			return
+		}
+
+		// Memisahkan kata "Bearer " dengan string token asli
+		refreshTokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if refreshTokenString == authHeader {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Format refresh token harus 'Bearer <refresh_token>'"})
+			return
+		}
+
+		// Parsing dan validasi
+		refreshToken, err := jwt.ParseWithClaims(refreshTokenString, &utils.JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
+			return []byte(secret), nil
+		})
+
+		if err != nil || !refreshToken.Valid {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Refresh token tidak valid atau telah kedaluwarsa"})
+			return
+		}
+
+		claims, ok := refreshToken.Claims.(*utils.JWTClaims)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Gagal membaca claims pada refresh token"})
+			return
+		}
+
+		if claims.TokenType != "refresh" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token yang digunakan bukan refresh token"})
+			return
+		}
+
+		// Menyimpan data user_id dan token ke dalam konteks Gin
+		c.Set("user_id", claims.UserID)
+		c.Set("refresh_token", refreshTokenString)
+
+		c.Next()
+	}
+}
+
+
 // RoleMiddleware membatasi akses berdasarkan role tertentu
 func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
