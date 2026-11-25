@@ -109,7 +109,11 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
-		userRole := role.(string)
+		userRole, ok := role.(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Akses ditolak: format role tidak valid"})
+			return
+		}
 		isAllowed := false
 
 		// Cek apakah role user saat ini ada di dalam daftar role yang diizinkan

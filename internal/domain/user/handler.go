@@ -56,9 +56,14 @@ func (h *UserHandler) Login(c *gin.Context) {
 }
 
 func (h *UserHandler) RefreshToken(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userIDVal, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak terautorisasi"})
+		return
+	}
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Format user ID tidak valid"})
 		return
 	}
 
@@ -67,8 +72,13 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token tidak ditemukan"})
 		return
 	}
+	refreshTokenStr, ok := refreshTokenVal.(string)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Format refresh token tidak valid"})
+		return
+	}
 
-	accessToken, refreshToken, err := h.service.RefreshToken(userID.(uint), refreshTokenVal.(string))
+	accessToken, refreshToken, err := h.service.RefreshToken(userID, refreshTokenStr)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return

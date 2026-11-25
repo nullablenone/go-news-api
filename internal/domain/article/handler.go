@@ -17,9 +17,14 @@ func NewArticleHandler(service ArticleService) *ArticleHandler {
 
 func (h *ArticleHandler) CreateArticle(c *gin.Context) {
 
-	userID, exists := c.Get("user_id")
+	userIDVal, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak terautorisasi"})
+		return
+	}
+	userID, ok := userIDVal.(uint)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Format user ID tidak valid"})
 		return
 	}
 
@@ -30,7 +35,7 @@ func (h *ArticleHandler) CreateArticle(c *gin.Context) {
 	}
 
 	// Oper userID (uint) ke service
-	article, err := h.service.CreateArticle(userID.(uint), req)
+	article, err := h.service.CreateArticle(userID, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan artikel"})
 		return
