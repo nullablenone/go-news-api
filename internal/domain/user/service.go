@@ -17,13 +17,13 @@ type UserService interface {
 
 type userService struct {
 	repo UserRepository
-	env  *config.Env
+	cfg  *config.Config
 }
 
-func NewUserService(repo UserRepository, env *config.Env) UserService {
+func NewUserService(repo UserRepository, cfg *config.Config) UserService {
 	return &userService{
 		repo: repo,
-		env:  env,
+		cfg:  cfg,
 	}
 }
 
@@ -65,12 +65,12 @@ func (s *userService) Login(req LoginRequest) (string, string, error) {
 	}
 
 	// 3. Generate Token JWT jika password cocok
-	accessToken, err := utils.GenerateAccessJWT(user.ID, user.Role, s.env.JWTSecret)
+	accessToken, err := utils.GenerateAccessJWT(user.ID, user.Role, s.cfg.JWT.Secret)
 	if err != nil {
 		return "", "", err
 	}
 
-	refreshToken, err := utils.GenerateRefreshJWT(user.ID, s.env.JWTSecret)
+	refreshToken, err := utils.GenerateRefreshJWT(user.ID, s.cfg.JWT.Secret)
 	if err != nil {
 		return "", "", err
 	}
@@ -114,12 +114,12 @@ func (s *userService) RefreshToken(userID uint, oldRefreshToken string) (string,
 	}
 
 	// 5. Generate sepasang token baru
-	accessToken, err := utils.GenerateAccessJWT(user.ID, user.Role, s.env.JWTSecret)
+	accessToken, err := utils.GenerateAccessJWT(user.ID, user.Role, s.cfg.JWT.Secret)
 	if err != nil {
 		return "", "", err
 	}
 
-	newRefreshToken, err := utils.GenerateRefreshJWT(user.ID, s.env.JWTSecret)
+	newRefreshToken, err := utils.GenerateRefreshJWT(user.ID, s.cfg.JWT.Secret)
 	if err != nil {
 		return "", "", err
 	}

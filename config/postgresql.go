@@ -8,10 +8,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func ConnectPostgre(env *Env) (*gorm.DB, error) {
+func ConnectPostgre(cfg DBConfig) (*gorm.DB, error) {
 
-	// dsn := "host=%s user=%s password=%s dbname=%s port=%s sslmode=%s"
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", env.DBHost, env.DBUser, env.DBPass, env.DBName, env.DBPort, env.DBSSLMode)
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.Host, cfg.User, cfg.Password, cfg.Name, cfg.Port, cfg.SSLMode)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
@@ -21,8 +20,8 @@ func ConnectPostgre(env *Env) (*gorm.DB, error) {
 
 	sqlDB, err := db.DB()
 	if err == nil {
-		sqlDB.SetMaxOpenConns(50)
-		sqlDB.SetMaxIdleConns(10)
+		sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+		sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
 	}
 
 	log.Println("database connected successfully!")

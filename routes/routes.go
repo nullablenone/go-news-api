@@ -9,14 +9,12 @@ import (
 	"github.com/nullablenone/go-news-api/internal/middleware"
 )
 
-func SetRoutes(env *config.Env, article *article.ArticleHandler, user *user.UserHandler) *gin.Engine {
+func SetRoutes(cfg *config.Config, article *article.ArticleHandler, user *user.UserHandler) *gin.Engine {
 	router := gin.Default()
 
-	// --- SETUP CORS ---
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowAllOrigins = true // Mengizinkan semua domain (termasuk localhost frontend)
+	corsConfig.AllowAllOrigins = true 
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
-	// Authorization agar pengiriman JWT tidak diblokir
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
 
 	router.Use(cors.New(corsConfig))
@@ -27,7 +25,7 @@ func SetRoutes(env *config.Env, article *article.ArticleHandler, user *user.User
 
 	// Auth (Refresh Token)
 	authRoutes := router.Group("/auth")
-	authRoutes.Use(middleware.RefreshTokenMiddleware(env.JWTSecret))
+	authRoutes.Use(middleware.RefreshTokenMiddleware(cfg.JWT.Secret))
 	{
 		authRoutes.POST("/refresh", user.RefreshToken)
 	}
@@ -38,7 +36,7 @@ func SetRoutes(env *config.Env, article *article.ArticleHandler, user *user.User
 
 	// Private (role: admin)
 	adminRoutes := router.Group("/admin")
-	adminRoutes.Use(middleware.AuthMiddleware(env.JWTSecret), middleware.RoleMiddleware("admin"))
+	adminRoutes.Use(middleware.AuthMiddleware(cfg.JWT.Secret), middleware.RoleMiddleware("admin"))
 	{
 		adminRoutes.POST("/article", article.CreateArticle)
 		adminRoutes.GET("/articles", article.GetArticles)

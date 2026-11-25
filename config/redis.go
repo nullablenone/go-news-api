@@ -9,23 +9,21 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func ConnectRedis(env *Env) (*redis.Client, error) {
-	if env.RedisHost == "" || env.RedisPort == "" {
+func ConnectRedis(cfg RedisConfig) (*redis.Client, error) {
+	if cfg.Host == "" || cfg.Port == "" {
 		log.Println("Konfigurasi Redis tidak diisi, aplikasi berjalan tanpa cache Redis")
 		return nil, nil
 	}
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", env.RedisHost, env.RedisPort),
-		Password: env.RedisPass,
-		DB:       0, // Menggunakan database default Redis
+		Addr:     fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
+		Password: cfg.Password,
+		DB:       0,
 	})
 
-	// Membuat context dengan timeout 5 detik untuk tes koneksi (Ping)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Melakukan Ping ke Redis untuk memastikan koneksi benar-benar tersambung
 	_, err := rdb.Ping(ctx).Result()
 	if err != nil {
 		_ = rdb.Close()

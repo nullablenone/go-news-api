@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nullablenone/go-news-api/config"
@@ -10,21 +12,31 @@ import (
 	"github.com/nullablenone/go-news-api/routes"
 )
 
+func setGinMode(appEnv string) {
+	switch strings.ToLower(appEnv) {
+	case "production", "prod":
+		gin.SetMode(gin.ReleaseMode)
+	case "test":
+		gin.SetMode(gin.TestMode)
+	default:
+		gin.SetMode(gin.DebugMode)
+	}
+}
+
 func main() {
-
-	gin.SetMode(gin.ReleaseMode)
-
-	env, err := config.NewEnv()
+	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("Inisialisasi Env file Gagal: %v", err)
+		log.Fatalf("Inisialisasi Config Gagal: %v", err)
 	}
 
-	db, err := config.ConnectPostgre(env)
+	setGinMode(cfg.App.Env)
+
+	db, err := config.ConnectPostgre(cfg.DB)
 	if err != nil {
 		log.Fatalf("Inisialisasi Postgre Gagal: %v", err)
 	}
 
-	rdb, err := config.ConnectRedis(env)
+	rdb, err := config.ConnectRedis(cfg.Redis)
 	if err != nil {
 		log.Printf("Peringatan: Inisialisasi Redis gagal (%v). Aplikasi berjalan tanpa cache Redis.", err)
 	}
@@ -44,12 +56,14 @@ func main() {
 
 	// User Wiring
 	userRepo := user.NewUserRepository(db)
-	userService := user.NewUserService(userRepo, env)
+	userService := user.NewUserService(userRepo, cfg)
 	userHandler := user.NewUserHandler(userService)
 
-	router := routes.SetRoutes(env, articleHandler, userHandler)
-	if err = router.Run(":8888"); err != nil {
-		log.Fatalf("failed to start HTTP server on :8888: %v", err)
+	router := routes.SetRoutes(cfg, articleHandler, userHandler)
+	addr := fmt.Sprintf(":%s", cfg.App.Port)
+	log.Printf("Menjalankan %s (%s) pada %s", cfg.App.Name, cfg.App.Env, addr)
+	if err = router.Run(addr); err != nil {
+		log.Fatalf("failed to start HTTP server on %s: %v", addr, err)
 	}
 
 }
