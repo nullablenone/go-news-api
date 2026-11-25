@@ -21,7 +21,7 @@ REST API service for managing news articles, user authentication, and role-based
 ├── docs/
 │   ├── DEVELOPMENT.md
 │   ├── DEVELOPMENT.id.md
-│   └── go-news-api.postman_collection.json
+│   └── openapi.yaml
 ├── internal/
 │   ├── domain/
 │   │   ├── article/
@@ -49,8 +49,9 @@ go run ./cmd/api
 
 - Developer guide in English: [docs/DEVELOPMENT.md][dev-en]
 - Developer guide in Bahasa Indonesia: [docs/DEVELOPMENT.id.md][dev-id]
-- Postman collection: [docs/go-news-api.postman_collection.json][postman]
+- OpenAPI specification: [docs/openapi.yaml][openapi]
+- Swagger UI endpoint: `/docs`
 
 [dev-en]: docs/DEVELOPMENT.md
 [dev-id]: docs/DEVELOPMENT.id.md
-[postman]: docs/go-news-api.postman_collection.json
+[openapi]: docs/openapi.yaml
