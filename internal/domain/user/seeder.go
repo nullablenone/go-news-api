@@ -7,20 +7,19 @@ import (
 	"gorm.io/gorm"
 )
 
-// RunAdminSeeder bertugas mengecek dan membuat default admin jika belum ada
 func RunAdminSeeder(db *gorm.DB) {
 	var adminCount int64
 
 	err := db.Model(&User{}).Where("role = ?", "admin").Count(&adminCount).Error
 	if err != nil {
-		log.Printf("[SEEDER ERROR] Gagal mengecek admin: %v\n", err)
+		log.Printf("[SEEDER ERROR] failed to check admin: %v\n", err)
 		return
 	}
 
 	if adminCount == 0 {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("#admin123"), bcrypt.DefaultCost)
 		if err != nil {
-			log.Fatalf("[SEEDER ERROR] Gagal melakukan hash password admin: %v\n", err)
+			log.Fatalf("[SEEDER ERROR] failed to hash admin password: %v\n", err)
 		}
 
 		defaultAdmin := User{
@@ -31,11 +30,11 @@ func RunAdminSeeder(db *gorm.DB) {
 		}
 
 		if err := db.Create(&defaultAdmin).Error; err != nil {
-			log.Printf("[SEEDER ERROR] Gagal membuat default admin: %v\n", err)
+			log.Printf("[SEEDER ERROR] failed to create default admin: %v\n", err)
 		} else {
-			log.Println("====== [SEEDER] Berhasil membuat akun admin default: admin@news.com / #admin123 ======")
+			log.Println("====== [SEEDER] Default admin created: admin@news.com / #admin123 ======")
 		}
 	} else {
-		log.Println("====== [SEEDER] Akun admin sudah tersedia di database ======")
+		log.Println("====== [SEEDER] Admin account already exists in database ======")
 	}
 }

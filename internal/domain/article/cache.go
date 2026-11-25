@@ -12,7 +12,6 @@ const (
 	cacheKeyArticlePrefix = "article:slug:"
 )
 
-// Helper privat untuk mengambil data dari Redis
 func (s *articleService) getCache(ctx context.Context, key string, dest interface{}) bool {
 	if s.rdb == nil {
 		return false
@@ -27,7 +26,6 @@ func (s *articleService) getCache(ctx context.Context, key string, dest interfac
 	return true
 }
 
-// Helper privat untuk menyimpan ke Redis
 func (s *articleService) setCache(ctx context.Context, key string, data interface{}) {
 	if s.rdb == nil {
 		return
@@ -38,7 +36,6 @@ func (s *articleService) setCache(ctx context.Context, key string, data interfac
 	}
 }
 
-// Helper privat untuk membersihkan cache
 func (s *articleService) clearArticleCache(slug string) {
 	if s.rdb == nil {
 		return

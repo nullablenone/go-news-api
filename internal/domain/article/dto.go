@@ -30,7 +30,6 @@ type ArticleResponse struct {
 	Content  []map[string]interface{} `json:"content"`
 }
 
-// Helper untuk mengubah Model DB "Article" menjadi Response DTO "ArticleResponse"
 func ToArticleResponse(a Article) ArticleResponse {
 	return ArticleResponse{
 		ID:       a.ID,
@@ -38,7 +37,7 @@ func ToArticleResponse(a Article) ArticleResponse {
 		Title:    a.Title,
 		Summary:  a.Summary,
 		Category: a.Category,
-		Date:     a.CreatedAt.Format("Jan 02, 2006"), // Mengubah time.Time menjadi format "May 10, 2026"
+		Date:     a.CreatedAt.Format("Jan 02, 2006"),
 		ReadTime: a.ReadTime,
 		Author:   a.Author.Name,
 		Content:  a.Content,

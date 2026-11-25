@@ -26,23 +26,23 @@ func setGinMode(appEnv string) {
 func main() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("Inisialisasi Config Gagal: %v", err)
+		log.Fatalf("failed to load config: %v", err)
 	}
 
 	setGinMode(cfg.App.Env)
 
 	db, err := config.ConnectPostgre(cfg.DB)
 	if err != nil {
-		log.Fatalf("Inisialisasi Postgre Gagal: %v", err)
+		log.Fatalf("failed to connect to PostgreSQL: %v", err)
 	}
 
 	rdb, err := config.ConnectRedis(cfg.Redis)
 	if err != nil {
-		log.Printf("Peringatan: Inisialisasi Redis gagal (%v). Aplikasi berjalan tanpa cache Redis.", err)
+		log.Printf("warning: failed to connect to Redis (%v). Running without Redis cache", err)
 	}
 
 	if err = db.AutoMigrate(article.Article{}, user.User{}, user.RefreshToken{}); err != nil {
-		log.Fatalf("Gagal membuat migrasi: %v", err)
+		log.Fatalf("failed to run database migration: %v", err)
 	}
 
 	// Seeder
@@ -61,7 +61,7 @@ func main() {
 
 	router := routes.SetRoutes(cfg, articleHandler, userHandler)
 	addr := fmt.Sprintf(":%s", cfg.App.Port)
-	log.Printf("Menjalankan %s (%s) pada %s", cfg.App.Name, cfg.App.Env, addr)
+	log.Printf("starting %s (%s) on %s", cfg.App.Name, cfg.App.Env, addr)
 	if err = router.Run(addr); err != nil {
 		log.Fatalf("failed to start HTTP server on %s: %v", addr, err)
 	}

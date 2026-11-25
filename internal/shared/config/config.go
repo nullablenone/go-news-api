@@ -43,7 +43,6 @@ type JWTConfig struct {
 	Secret string
 }
 
-// LoadConfig memuat konfigurasi aplikasi dari file .env dan environment variables.
 func LoadConfig() (*Config, error) {
 	if err := godotenv.Load(".env"); err != nil {
 		return nil, err
@@ -81,7 +80,7 @@ func LoadConfig() (*Config, error) {
 		},
 	}
 
-	log.Println("Berhasil Inisialisasi Config")
+	log.Println("config initialized successfully")
 
 	return cfg, nil
 }
@@ -100,7 +99,7 @@ func getEnvInt(key string, fallback int) int {
 	}
 	parsed, err := strconv.Atoi(val)
 	if err != nil || parsed <= 0 {
-		log.Printf("Peringatan: nilai %s=%q tidak valid, menggunakan default %d", key, val, fallback)
+		log.Printf("warning: invalid %s=%q, using default %d", key, val, fallback)
 		return fallback
 	}
 	return parsed

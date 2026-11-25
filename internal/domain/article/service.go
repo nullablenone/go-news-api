@@ -56,13 +56,12 @@ func (s *articleService) GetAllArticles() ([]Article, error) {
 	ctx := context.Background()
 	var articles []Article
 
-	// Panggilan cache menjadi sangat ringkas dan bersih
 	if s.getCache(ctx, cacheKeyAllArticles, &articles) {
-		log.Println("====== [REDIS] Cache Hit: Mengambil semua artikel dari Redis ======")
+		log.Println("====== [REDIS] Cache Hit: fetching all articles from Redis ======")
 		return articles, nil
 	}
 
-	log.Println("====== [DB] Cache Miss: Mengambil semua artikel dari PostgreSQL ======")
+	log.Println("====== [DB] Cache Miss: fetching all articles from PostgreSQL ======")
 	articles, err := s.repo.FindAll()
 	if err != nil {
 		return nil, err
@@ -78,11 +77,11 @@ func (s *articleService) GetArticleBySlug(slug string) (Article, error) {
 	var article Article
 
 	if s.getCache(ctx, cacheKey, &article) {
-		log.Printf("====== [REDIS] Cache Hit: Mengambil artikel slug [%s] dari Redis ======", slug)
+		log.Printf("====== [REDIS] Cache Hit: fetching article slug [%s] from Redis ======", slug)
 		return article, nil
 	}
 
-	log.Printf("====== [DB] Cache Miss: Mengambil artikel slug [%s] dari PostgreSQL ======", slug)
+	log.Printf("====== [DB] Cache Miss: fetching article slug [%s] from PostgreSQL ======", slug)
 	article, err := s.repo.FindBySlug(slug)
 	if err != nil {
 		return Article{}, err

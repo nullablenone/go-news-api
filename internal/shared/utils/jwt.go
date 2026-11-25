@@ -22,10 +22,8 @@ func GenerateAccessJWT(userID uint, role string, secret string) (string, error) 
 		Role:      role,
 		TokenType: "access",
 		RegisteredClaims: jwt.RegisteredClaims{
-			// Token kedaluwarsa dalam 40 menit
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(40 * time.Minute)),
-			// ExpiresAt: jwt.NewNumericDate(time.Now().Add(60 * time.Second)), // test: membuktikan benar expired
-			IssuedAt: jwt.NewNumericDate(time.Now()),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 
@@ -45,7 +43,7 @@ func GenerateRefreshJWT(userID uint, secret string) (string, error) {
 		TokenType: "refresh",
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        jti,
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)), // 7 hari
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
@@ -59,12 +57,12 @@ func ValidateToken(tokenString string, secret string) (*JWTClaims, error) {
 		return []byte(secret), nil
 	})
 	if err != nil || !token.Valid {
-		return nil, errors.New("token tidak valid atau telah kedaluwarsa")
+		return nil, errors.New("invalid or expired token")
 	}
 
 	claims, ok := token.Claims.(*JWTClaims)
 	if !ok {
-		return nil, errors.New("gagal membaca claims pada token")
+		return nil, errors.New("failed to parse token claims")
 	}
 
 	return claims, nil

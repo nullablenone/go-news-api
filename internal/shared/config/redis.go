@@ -11,7 +11,7 @@ import (
 
 func ConnectRedis(cfg RedisConfig) (*redis.Client, error) {
 	if cfg.Host == "" || cfg.Port == "" {
-		log.Println("Konfigurasi Redis tidak diisi, aplikasi berjalan tanpa cache Redis")
+		log.Println("Redis config not set, running without Redis cache")
 		return nil, nil
 	}
 
@@ -27,10 +27,10 @@ func ConnectRedis(cfg RedisConfig) (*redis.Client, error) {
 	_, err := rdb.Ping(ctx).Result()
 	if err != nil {
 		_ = rdb.Close()
-		return nil, fmt.Errorf("gagal menyambung ke Redis: %v", err)
+		return nil, fmt.Errorf("failed to connect to Redis: %v", err)
 	}
 
-	log.Println("Koneksi Redis Berhasil Terhubung")
+	log.Println("Redis connected successfully")
 
 	return rdb, nil
 }

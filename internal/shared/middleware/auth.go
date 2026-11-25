@@ -9,44 +9,40 @@ import (
 	"github.com/nullablenone/go-news-api/internal/shared/utils"
 )
 
-// AuthMiddleware memvalidasi token JWT dari header Authorization
 func AuthMiddleware(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Access token tidak ditemukan, silakan login terlebih dahulu"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "access token not found, please login first"})
 			return
 		}
 
-		// Memisahkan kata "Bearer " dengan string token asli
 		accessTokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if accessTokenString == authHeader {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Format access token harus 'Bearer <access_token>'"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "access token format must be 'Bearer <access_token>'"})
 			return
 		}
 
-		// Parsing dan validasi
 		accessToken, err := jwt.ParseWithClaims(accessTokenString, &utils.JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
 			return []byte(secret), nil
 		})
 
 		if err != nil || !accessToken.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Access token tidak valid atau telah kedaluwarsa"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired access token"})
 			return
 		}
 
 		claims, ok := accessToken.Claims.(*utils.JWTClaims)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Gagal membaca claims pada access token"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "failed to parse access token claims"})
 			return
 		}
 
 		if claims.TokenType != "access" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token yang digunakan bukan access token"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "provided token is not an access token"})
 			return
 		}
 
-		// Menyimpan data user_id dan role ke dalam konteks Gin
 		c.Set("user_id", claims.UserID)
 		c.Set("role", claims.Role)
 
@@ -54,44 +50,40 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 	}
 }
 
-// RefreshTokenMiddleware memvalidasi refresh token JWT dari header Authorization
 func RefreshTokenMiddleware(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Refresh token tidak ditemukan, silakan login terlebih dahulu"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "refresh token not found, please login first"})
 			return
 		}
 
-		// Memisahkan kata "Bearer " dengan string token asli
 		refreshTokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if refreshTokenString == authHeader {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Format refresh token harus 'Bearer <refresh_token>'"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "refresh token format must be 'Bearer <refresh_token>'"})
 			return
 		}
 
-		// Parsing dan validasi
 		refreshToken, err := jwt.ParseWithClaims(refreshTokenString, &utils.JWTClaims{}, func(t *jwt.Token) (interface{}, error) {
 			return []byte(secret), nil
 		})
 
 		if err != nil || !refreshToken.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Refresh token tidak valid atau telah kedaluwarsa"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired refresh token"})
 			return
 		}
 
 		claims, ok := refreshToken.Claims.(*utils.JWTClaims)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Gagal membaca claims pada refresh token"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "failed to parse refresh token claims"})
 			return
 		}
 
 		if claims.TokenType != "refresh" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "token yang digunakan bukan refresh token"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "provided token is not a refresh token"})
 			return
 		}
 
-		// Menyimpan data user_id dan token ke dalam konteks Gin
 		c.Set("user_id", claims.UserID)
 		c.Set("refresh_token", refreshTokenString)
 
@@ -99,24 +91,21 @@ func RefreshTokenMiddleware(secret string) gin.HandlerFunc {
 	}
 }
 
-
-// RoleMiddleware membatasi akses berdasarkan role tertentu
 func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("role")
 		if !exists {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Akses ditolak: role tidak ditemukan"})
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: role not found"})
 			return
 		}
 
 		userRole, ok := role.(string)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Akses ditolak: format role tidak valid"})
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: invalid role format"})
 			return
 		}
 		isAllowed := false
 
-		// Cek apakah role user saat ini ada di dalam daftar role yang diizinkan
 		for _, r := range allowedRoles {
 			if userRole == r {
 				isAllowed = true
@@ -125,7 +114,7 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		}
 
 		if !isAllowed {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Akses ditolak: Anda tidak memiliki hak akses"})
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: insufficient permissions"})
 			return
 		}
 
