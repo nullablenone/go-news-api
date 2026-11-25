@@ -47,6 +47,10 @@ go run ./cmd/api
 
 ## Documentation
 
-- Developer guide in English: `docs/DEVELOPMENT.md`
-- Developer guide in Bahasa Indonesia: `docs/DEVELOPMENT.id.md`
-- Postman collection: `docs/go-news-api.postman_collection.json`
+- Developer guide in English: [docs/DEVELOPMENT.md][dev-en]
+- Developer guide in Bahasa Indonesia: [docs/DEVELOPMENT.id.md][dev-id]
+- Postman collection: [docs/go-news-api.postman_collection.json][postman]
+
+[dev-en]: docs/DEVELOPMENT.md
+[dev-id]: docs/DEVELOPMENT.id.md
+[postman]: docs/go-news-api.postman_collection.json
