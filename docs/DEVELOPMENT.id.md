@@ -1,6 +1,6 @@
 # Go News API - Dokumentasi Pengembang
 
-Baca ini dalam [Bahasa Inggris](README.md)
+Baca ini dalam [Bahasa Inggris](DEVELOPMENT.md)
 
 Selamat datang di dokumentasi pengembang untuk **Go News API**. Dokumen ini ditulis khusus untuk memudahkan pengembangan di masa mendatang, proses onboarding pengembang baru, serta pemeliharaan kode. Dokumentasi ini berfokus pada detail teknis, arsitektur sistem, skema database, mekanisme caching, dan panduan untuk memperluas fitur aplikasi.
 
@@ -10,22 +10,22 @@ Selamat datang di dokumentasi pengembang untuk **Go News API**. Dokumen ini ditu
 
 Basis kode ini menggunakan struktur Clean Architecture yang rapi. Berikut adalah direktori utama dan file entri penting:
 
-- **[main.go](file:///c:/Users/ranis/Project/work/go-news-api/main.go)**: Bootstrapper aplikasi. Mengatur inisialisasi environment, auto-migrasi database, inisialisasi client cache, wiring dependency injection, dan menjalankan HTTP server.
-- **[config/](file:///c:/Users/ranis/Project/work/go-news-api/config)**: Konfigurasi dan inisialisasi driver:
-  - [config/env.go](file:///c:/Users/ranis/Project/work/go-news-api/config/env.go): Memuat dan melakukan parsing file `.env`.
-  - [config/gorm_postgresql.go](file:///c:/Users/ranis/Project/work/go-news-api/config/gorm_postgresql.go): Menyiapkan koneksi database PostgreSQL menggunakan GORM beserta konfigurasi pool-nya.
-  - [config/redis.go](file:///c:/Users/ranis/Project/work/go-news-api/config/redis.go): Menginisialisasi koneksi client Redis dan melakukan verifikasi ping.
-- **[internal/domain/](file:///c:/Users/ranis/Project/work/go-news-api/internal/domain)**: Logika bisnis inti yang dibagi per domain, berisi model skema, DTO, repositori, servis, dan handler:
-  - **[internal/domain/user/](file:///c:/Users/ranis/Project/work/go-news-api/internal/domain/user)**: Registrasi, login, model data pengguna, dan database seeder admin.
-  - **[internal/domain/article/](file:///c:/Users/ranis/Project/work/go-news-api/internal/domain/article)**: Operasi CRUD artikel, pemetaan DTO, seeder artikel dummy, dan integrasi cache Redis.
-- **[internal/middleware/](file:///c:/Users/ranis/Project/work/go-news-api/internal/middleware)**: Interseptor HTTP Gin:
-  - [auth.go](file:///c:/Users/ranis/Project/work/go-news-api/internal/middleware/auth.go): Mengimplementasikan verifikasi JWT dan penegakan peran (role verification).
-- **[internal/utils/](file:///c:/Users/ranis/Project/work/go-news-api/internal/utils)**: Fungsi pembantu umum:
-  - [jwt.go](file:///c:/Users/ranis/Project/work/go-news-api/internal/utils/jwt.go): Berfungsi untuk pembuatan (signing) token JWT.
-- **[routes/](file:///c:/Users/ranis/Project/work/go-news-api/routes)**: Konfigurasi routing HTTP.
-  - [routes/routes.go](file:///c:/Users/ranis/Project/work/go-news-api/routes/routes.go): Menghubungkan endpoint API ke handler terkait dan mendefinisikan aturan CORS.
-- **[docs/](file:///c:/Users/ranis/Project/work/go-news-api/docs)**: Dokumentasi eksternal dan koleksi pengujian API.
-  - [docs/go-news-api.postman_collection.json](file:///c:/Users/ranis/Project/work/go-news-api/docs/go-news-api.postman_collection.json): Berkas koleksi Postman untuk pengujian API.
+- **`cmd/api/main.go`**: Bootstrapper aplikasi. Mengatur pemuatan konfigurasi, mode Gin, auto-migrasi database, inisialisasi client cache opsional, wiring dependency injection, dan menjalankan HTTP server.
+- **`internal/shared/config/`**: Konfigurasi dan inisialisasi driver:
+  - `internal/shared/config/config.go`: Memuat file `.env` dan mengelompokkan konfigurasi ke `AppConfig`, `DBConfig`, `RedisConfig`, dan `JWTConfig`.
+  - `internal/shared/config/postgresql.go`: Menyiapkan koneksi database PostgreSQL menggunakan GORM beserta konfigurasi pool-nya.
+  - `internal/shared/config/redis.go`: Menginisialisasi koneksi client Redis dan melakukan verifikasi ping, serta mengembalikan `nil` jika tidak dikonfigurasi.
+- **`internal/domain/`**: Logika bisnis inti yang dibagi per domain, berisi model skema, DTO, repositori, servis, dan handler:
+  - **`internal/domain/user/`**: Registrasi, login, rotasi refresh token, model data pengguna, dan database seeder admin.
+  - **`internal/domain/article/`**: Operasi CRUD artikel, pemetaan DTO, seeder artikel dummy, dan integrasi cache Redis opsional di `service.go`.
+- **`internal/shared/middleware/`**: Interseptor HTTP Gin:
+  - `internal/shared/middleware/auth.go`: Mengimplementasikan verifikasi JWT, middleware refresh token, dan penegakan peran (role verification).
+- **`internal/shared/utils/`**: Fungsi pembantu umum:
+  - `internal/shared/utils/jwt.go`: Berfungsi untuk pembuatan dan validasi access/refresh token JWT.
+- **`internal/routes/`**: Konfigurasi routing HTTP:
+  - `internal/routes/routes.go`: Menghubungkan endpoint API ke handler terkait dan mendefinisikan aturan CORS.
+- **`docs/`**: Dokumentasi eksternal dan koleksi pengujian API:
+  - `docs/go-news-api.postman_collection.json`: Berkas koleksi Postman untuk pengujian API.
 
 ---
 
@@ -91,9 +91,9 @@ sequenceDiagram
 
 ## Skema Database & Serialisasi Kustom
 
-Tabel relasional dikelola secara otomatis menggunakan fitur **GORM AutoMigrate** di dalam berkas [main.go](file:///c:/Users/ranis/Project/work/go-news-api/main.go).
+Tabel relasional dikelola secara otomatis menggunakan fitur **GORM AutoMigrate** di dalam berkas `cmd/api/main.go`.
 
-### 1. Entitas User ([user/model.go](file:///c:/Users/ranis/Project/work/go-news-api/internal/domain/user/model.go))
+### 1. Entitas User (`internal/domain/user/model.go`)
 Menyimpan informasi pengguna/admin. Mendukung fitur penghapusan logis (soft delete):
 - `ID` (Primary Key, uint)
 - `Name` (varchar(100), tidak null)
@@ -103,7 +103,7 @@ Menyimpan informasi pengguna/admin. Mendukung fitur penghapusan logis (soft dele
 - `CreatedAt`, `UpdatedAt` (timestamptz)
 - `DeletedAt` (indeks timestamptz) - GORM soft delete support.
 
-### 2. Entitas Article ([article/model.go](file:///c:/Users/ranis/Project/work/go-news-api/internal/domain/article/model.go))
+### 2. Entitas Article (`internal/domain/article/model.go`)
 Menyimpan data dokumen artikel berita.
 - `ID` (Primary Key, uint)
 - `Title` (varchar(255), tidak null)
@@ -129,16 +129,16 @@ Content []map[string]interface{} `gorm:"serializer:json;type:jsonb;index:,type:g
 
 ## Mekanisme Caching Redis & Invalidasi Cache
 
-Untuk menahan beban kueri saat lalu lintas padat, endpoint publik mengimplementasikan pola **Cache-Aside (Lazy Loading)**.
+Untuk menahan beban kueri saat lalu lintas padat, endpoint publik mengimplementasikan pola **Cache-Aside (Lazy Loading)** secara opsional. Jika Redis tidak dikonfigurasi atau tidak tersedia saat startup, aplikasi akan langsung menggunakan PostgreSQL sebagai fallback.
 
 ### Konfigurasi Cache
-- **Masa Aktif (TTL)**: 1 Jam (`cacheTTL` di dalam berkas [article/cache.go](file:///c:/Users/ranis/Project/work/go-news-api/internal/domain/article/cache.go)).
+- **Masa Aktif (TTL)**: 1 Jam (`cacheTTL` di dalam berkas `internal/domain/article/service.go`).
 - **Kebijakan Kunci (Keys)**:
   - `articles:all`: Menyimpan seluruh daftar artikel yang ditayangkan ke publik.
   - `article:slug:<slug>`: Menyimpan detail artikel tunggal berdasarkan slug uniknya.
 
 ### Kebijakan Invalidasi Cache
-Untuk mencegah pembacaan data basi (stale data), operasi penulisan data (mutasi) wajib menghapus cache yang terpengaruh. Berikut adalah aturan penghapusan cache yang diimplementasikan di [article/cache.go](file:///c:/Users/ranis/Project/work/go-news-api/internal/domain/article/cache.go#L35-L42):
+Untuk mencegah pembacaan data basi (stale data), operasi penulisan data (mutasi) wajib menghapus cache yang terpengaruh. Berikut adalah aturan penghapusan cache yang diimplementasikan di `internal/domain/article/service.go`:
 
 | Operasi Tulis | Endpoint Terkait | Kunci Cache yang Dihapus | Alasan & Rationale |
 |---|---|---|---|
@@ -153,14 +153,14 @@ Untuk mencegah pembacaan data basi (stale data), operasi penulisan data (mutasi)
 API ini menggunakan mekanisme **Stateless JWT Tokens** untuk keamanan rute.
 
 ### 1. Struktur Token
-- Token dibuat melalui berkas pembantu [utils/jwt.go](file:///c:/Users/ranis/Project/work/go-news-api/internal/utils/jwt.go).
-- Menyimpan klaim kustom: `UserID` dan `Role`.
+- Token dibuat melalui berkas pembantu `internal/shared/utils/jwt.go`.
+- Menyimpan klaim kustom: `UserID`, `Role`, dan `TokenType`.
 - Ditandatangani menggunakan algoritma enkripsi simetris `HS256` dengan kunci rahasia yang diambil dari variabel environment `JWT_SECRET`.
-- Masa kedaluwarsa token: 24 Jam.
+- Masa kedaluwarsa token: 40 menit untuk access token, 7 hari untuk refresh token.
 
 ### 2. Aliran Interseptor Rute
-- **[AuthMiddleware](file:///c:/Users/ranis/Project/work/go-news-api/internal/middleware/auth.go#L13)**: Mengadang permintaan ke rute terproteksi, membaca header `Authorization` dengan format `Bearer <token>`, memverifikasi keabsahan JWT, dan mengekstrak klaim user. Jika token valid, informasi `user_id` dan `role` disimpan ke dalam konteks permintaan Gin (`c.Set("user_id", ...)` dan `c.Set("role", ...)`).
-- **[RoleMiddleware](file:///c:/Users/ranis/Project/work/go-news-api/internal/middleware/auth.go#L53)**: Memeriksa data `role` yang tersimpan pada konteks Gin. Membandingkannya dengan daftar peran yang diperbolehkan mengakses rute (contoh: `RoleMiddleware("admin")`).
+- **`AuthMiddleware` (`internal/shared/middleware/auth.go`)**: Mengadang permintaan ke rute terproteksi, membaca header `Authorization` dengan format `Bearer <token>`, memverifikasi keabsahan access JWT, dan mengekstrak klaim user. Jika token valid, informasi `user_id` dan `role` disimpan ke dalam konteks permintaan Gin (`c.Set("user_id", ...)` dan `c.Set("role", ...)`).
+- **`RoleMiddleware` (`internal/shared/middleware/auth.go`)**: Memeriksa data `role` yang tersimpan pada konteks Gin. Membandingkannya dengan daftar peran yang diperbolehkan mengakses rute (contoh: `RoleMiddleware("admin")`).
 
 ---
 
@@ -169,12 +169,18 @@ API ini menggunakan mekanisme **Stateless JWT Tokens** untuk keamanan rute.
 ### 1. Konfigurasi Variabel (`.env`)
 Salin file `.env.example` menjadi `.env` di direktori utama proyek, kemudian sesuaikan nilainya:
 ```ini
+APP_NAME=go-news-api
+APP_ENV=development
+APP_PORT=8888
+
 DB_HOST=localhost
 DB_USER=postgres
 DB_PASS=isi_password_database_anda
 DB_NAME=news_db
 DB_PORT=5432
 DB_SSLMODE=disable
+DB_MAX_OPEN_CONNS=50
+DB_MAX_IDLE_CONNS=10
 
 REDIS_HOST=localhost
 REDIS_PORT=6379
@@ -184,12 +190,12 @@ JWT_SECRET=buat_kunci_rahasia_jwt_yang_panjang_dan_acak
 ```
 
 ### 2. Menjalankan Dependensi Eksternal (Docker)
-Jika Anda belum memiliki instance PostgreSQL atau Redis yang berjalan di sistem lokal, gunakan perintah Docker berikut:
+Jika Anda belum memiliki instance PostgreSQL atau Redis yang berjalan di sistem lokal, gunakan perintah Docker berikut (Redis bersifat opsional):
 ```bash
-# Menjalankan Redis
+# Menjalankan Redis (Opsional)
 docker run --name news-api-redis -p 6379:6379 -d redis
 
-# Menjalankan PostgreSQL (Opsional)
+# Menjalankan PostgreSQL
 docker run --name news-api-postgres -e POSTGRES_DB=news_db -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=isi_password_database_anda -p 5432:5432 -d postgres
 ```
 
@@ -200,12 +206,12 @@ Gunakan perintah Go berikut untuk memproses dependensi dan menjalankan server:
 go mod tidy
 
 # Menjalankan server aplikasi
-go run main.go
+go run ./cmd/api
 ```
-Secara default, HTTP server akan berjalan pada port `8888`. Sinkronisasi tabel database (auto-migration) berjalan otomatis saat inisialisasi aplikasi.
+Secara default, HTTP server akan berjalan pada port `8888` (dapat diubah melalui `APP_PORT`). Sinkronisasi tabel database (auto-migration) berjalan otomatis saat inisialisasi aplikasi.
 
 ### 4. Akun Admin Bawaan (Admin Seeder)
-Saat pertama kali dijalankan, fungsi [RunAdminSeeder](file:///c:/Users/ranis/Project/work/go-news-api/internal/domain/user/seeder.go#L11) di [main.go](file:///c:/Users/ranis/Project/work/go-news-api/main.go) akan memeriksa keberadaan user dengan role `"admin"`. Jika kosong, sistem otomatis membuat satu akun admin default:
+Saat pertama kali dijalankan, `cmd/api/main.go` akan memanggil `RunAdminSeeder` untuk memeriksa keberadaan user dengan role `"admin"`. Jika kosong, sistem otomatis membuat satu akun admin default:
 - **Email**: `admin@news.com`
 - **Password**: `#admin123` *(Penting: Pastikan untuk menyertakan awalan karakter pagar `#` sesuai implementasi pada kode seeder)*
 
@@ -215,7 +221,7 @@ Saat pertama kali dijalankan, fungsi [RunAdminSeeder](file:///c:/Users/ranis/Pro
 
 Tersedia berkas koleksi Postman untuk mempercepat pengujian setiap rute API.
 
-- **Lokasi Berkas**: [docs/go-news-api.postman_collection.json](file:///c:/Users/ranis/Project/work/go-news-api/docs/go-news-api.postman_collection.json)
+- **Lokasi Berkas**: `docs/go-news-api.postman_collection.json`
 - **Cara Mengimpor**:
   1. Buka aplikasi client Postman.
   2. Klik tombol **Import** di bagian panel navigasi kiri atas.
@@ -352,7 +358,7 @@ func (h *CommentHandler) AddComment(c *gin.Context) {
 ```
 
 ### Langkah 7: Daftarkan Skema & Hubungkan Dependensi (Wiring)
-Buka berkas **[main.go](file:///c:/Users/ranis/Project/work/go-news-api/main.go)** dan tambahkan penyesuaian berikut:
+Buka berkas **`cmd/api/main.go`** dan tambahkan penyesuaian berikut:
 1. Daftarkan model baru pada fungsi `AutoMigrate` GORM:
    ```go
    db.AutoMigrate(article.Article{}, user.User{}, comment.Comment{})
@@ -365,11 +371,11 @@ Buka berkas **[main.go](file:///c:/Users/ranis/Project/work/go-news-api/main.go)
    ```
 3. Oper instans handler baru ke dalam fungsi inisialisasi rute:
    ```go
-   router := routes.SetRoutes(env, articleHandler, userHandler, commentHandler)
+   router := routes.SetRoutes(cfg, articleHandler, userHandler, commentHandler)
    ```
 
 ### Langkah 8: Konfigurasikan Endpoint Rute API
-Buka berkas **[routes/routes.go](file:///c:/Users/ranis/Project/work/go-news-api/routes/routes.go)** untuk mendaftarkan endpoint HTTP rute:
+Buka berkas **`internal/routes/routes.go`** untuk mendaftarkan endpoint HTTP rute:
 - Contoh mendaftarkan sebagai rute publik pembaca:
   ```go
   publicArticleRoutes.POST("/articles/:id/comments", commentHandler.AddComment)
