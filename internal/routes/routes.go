@@ -19,6 +19,9 @@ func SetRoutes(cfg *config.Config, article *article.ArticleHandler, user *user.U
 
 	router.Use(cors.New(corsConfig))
 
+	// Docs
+	registerDocsRoutes(router)
+
 	// Public
 	router.POST("/register", user.Register)
 	router.POST("/login", user.Login)

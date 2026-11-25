@@ -1,0 +1,438 @@
+openapi: 3.0.3
+info:
+  title: Go News API
+  version: 1.0.0
+  description: REST API for managing news articles, user authentication, and role-based access control.
+
+servers:
+  - url: /
+    description: Current server
+
+tags:
+  - name: Auth
+    description: Registration, login, and token refresh
+  - name: Public Articles
+    description: Public article endpoints
+  - name: Admin Articles
+    description: Admin-only article management endpoints
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          example: John Doe
+        email:
+          type: string
+          format: email
+          maxLength: 150
+          example: john@example.com
+        password:
+          type: string
+          minLength: 6
+          example: secret123
+
+    RegisterResponse:
+      type: object
+      properties:
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          example: john@example.com
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@news.com
+        password:
+          type: string
+          example: "#admin123"
+
+    TokenPair:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+
+    ArticleRequest:
+      type: object
+      required:
+        - title
+        - slug
+        - summary
+        - category
+        - read_time
+        - content
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          example: Getting Started with Go
+        slug:
+          type: string
+          maxLength: 255
+          example: getting-started-with-go
+        summary:
+          type: string
+          example: A brief introduction to building APIs in Go.
+        category:
+          type: string
+          maxLength: 100
+          example: Technology
+        read_time:
+          type: string
+          maxLength: 50
+          example: 5 min read
+        content:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          example:
+            - type: paragraph
+              text: Go is a statically typed, compiled language.
+
+    ArticleResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        slug:
+          type: string
+          example: getting-started-with-go
+        title:
+          type: string
+          example: Getting Started with Go
+        summary:
+          type: string
+          example: A brief introduction to building APIs in Go.
+        category:
+          type: string
+          example: Technology
+        date:
+          type: string
+          example: Nov 25, 2026
+        readTime:
+          type: string
+          example: 5 min read
+        author:
+          type: string
+          example: Super Admin
+        content:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        detail:
+          type: string
+
+paths:
+  /register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/RegisterResponse"
+        "400":
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /login:
+    post:
+      tags:
+        - Auth
+      summary: Login and obtain access and refresh tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/TokenPair"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Rotate refresh token and issue new token pair
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/TokenPair"
+        "401":
+          description: Unauthorized or invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /public/articles:
+    get:
+      tags:
+        - Public Articles
+      summary: List all published articles
+      responses:
+        "200":
+          description: List of articles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ArticleResponse"
+
+  /public/articles/{slug}:
+    get:
+      tags:
+        - Public Articles
+      summary: Get a single article by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Article detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ArticleResponse"
+        "404":
+          description: Article not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/article:
+    post:
+      tags:
+        - Admin Articles
+      summary: Create a new article
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleRequest"
+      responses:
+        "201":
+          description: Article created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/ArticleResponse"
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /admin/articles:
+    get:
+      tags:
+        - Admin Articles
+      summary: List all articles for admin
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: List of articles
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ArticleResponse"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+
+  /admin/article/{id}:
+    get:
+      tags:
+        - Admin Articles
+      summary: Get an article by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Article detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ArticleResponse"
+        "400":
+          description: Invalid ID
+        "404":
+          description: Article not found
+    put:
+      tags:
+        - Admin Articles
+      summary: Update an existing article
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArticleRequest"
+      responses:
+        "200":
+          description: Article updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: "#/components/schemas/ArticleResponse"
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+    delete:
+      tags:
+        - Admin Articles
+      summary: Delete an article by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Article deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "400":
+          description: Invalid ID
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
