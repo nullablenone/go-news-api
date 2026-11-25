@@ -54,7 +54,7 @@ func TestPostgresAndRoutesIntegration(t *testing.T) {
 	userService := user.NewUserService(userRepo, cfg)
 	userHandler := user.NewUserHandler(userService)
 
-	router := SetRoutes(cfg, articleHandler, userHandler)
+	router := SetRoutes(cfg, tx, nil, articleHandler, userHandler)
 
 	// 1. Register user
 	regBody, _ := json.Marshal(map[string]string{
@@ -137,7 +137,16 @@ func TestPostgresAndRoutesIntegration(t *testing.T) {
 	w = performRequest(router, http.MethodDelete, articleIDPath, nil, loginResp.Data.AccessToken)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	// 7. Docs & OpenAPI endpoints
+	// 7. Root, health, docs & OpenAPI endpoints
+	w = performRequest(router, http.MethodGet, "/", nil, "")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "is running")
+
+	w = performRequest(router, http.MethodGet, "/health", nil, "")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "connected")
+	assert.Contains(t, w.Body.String(), "disabled")
+
 	w = performRequest(router, http.MethodGet, "/docs", nil, "")
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "SwaggerUIBundle")

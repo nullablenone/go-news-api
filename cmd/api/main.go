@@ -59,7 +59,7 @@ func main() {
 	userService := user.NewUserService(userRepo, cfg)
 	userHandler := user.NewUserHandler(userService)
 
-	router := routes.SetRoutes(cfg, articleHandler, userHandler)
+	router := routes.SetRoutes(cfg, db, rdb, articleHandler, userHandler)
 	addr := fmt.Sprintf(":%s", cfg.App.Port)
 	log.Printf("starting %s (%s) on %s", cfg.App.Name, cfg.App.Env, addr)
 	if err = router.Run(addr); err != nil {

@@ -9,6 +9,8 @@ servers:
     description: Current server
 
 tags:
+  - name: System
+    description: Root information and health check endpoints
   - name: Auth
     description: Registration, login, and token refresh
   - name: Public Articles
@@ -157,6 +159,70 @@ components:
           type: string
 
 paths:
+  /:
+    get:
+      tags:
+        - System
+      summary: Get application root information
+      responses:
+        "200":
+          description: Application is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: go-news-api is running
+                  data:
+                    type: object
+                    properties:
+                      app:
+                        type: string
+                        example: go-news-api
+                      env:
+                        type: string
+                        example: development
+
+  /health:
+    get:
+      tags:
+        - System
+      summary: Check service and database health
+      responses:
+        "200":
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: System is healthy.
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: UP
+                      database:
+                        type: string
+                        example: connected
+                      redis:
+                        type: string
+                        example: disabled
+                      time:
+                        type: string
+                        format: date-time
+        "500":
+          description: Database handle unavailable or ping failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /register:
     post:
       tags:
