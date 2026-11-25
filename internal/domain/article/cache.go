@@ -14,6 +14,9 @@ const (
 
 // Helper privat untuk mengambil data dari Redis
 func (s *articleService) getCache(ctx context.Context, key string, dest interface{}) bool {
+	if s.rdb == nil {
+		return false
+	}
 	cachedData, err := s.rdb.Get(ctx, key).Result()
 	if err != nil {
 		return false
@@ -26,6 +29,9 @@ func (s *articleService) getCache(ctx context.Context, key string, dest interfac
 
 // Helper privat untuk menyimpan ke Redis
 func (s *articleService) setCache(ctx context.Context, key string, data interface{}) {
+	if s.rdb == nil {
+		return
+	}
 	jsonData, err := json.Marshal(data)
 	if err == nil {
 		s.rdb.Set(ctx, key, jsonData, cacheTTL)
@@ -34,6 +40,9 @@ func (s *articleService) setCache(ctx context.Context, key string, data interfac
 
 // Helper privat untuk membersihkan cache
 func (s *articleService) clearArticleCache(slug string) {
+	if s.rdb == nil {
+		return
+	}
 	ctx := context.Background()
 	s.rdb.Del(ctx, cacheKeyAllArticles)
 	if slug != "" {

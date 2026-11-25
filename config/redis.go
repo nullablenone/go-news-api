@@ -10,6 +10,11 @@ import (
 )
 
 func ConnectRedis(env *Env) (*redis.Client, error) {
+	if env.RedisHost == "" || env.RedisPort == "" {
+		log.Println("Konfigurasi Redis tidak diisi, aplikasi berjalan tanpa cache Redis")
+		return nil, nil
+	}
+
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", env.RedisHost, env.RedisPort),
 		Password: env.RedisPass,
@@ -23,6 +28,7 @@ func ConnectRedis(env *Env) (*redis.Client, error) {
 	// Melakukan Ping ke Redis untuk memastikan koneksi benar-benar tersambung
 	_, err := rdb.Ping(ctx).Result()
 	if err != nil {
+		_ = rdb.Close()
 		return nil, fmt.Errorf("gagal menyambung ke Redis: %v", err)
 	}
 

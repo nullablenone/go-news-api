@@ -26,7 +26,7 @@ func main() {
 
 	rdb, err := config.ConnectRedis(env)
 	if err != nil {
-		log.Fatalf("Inisialisasi Redis Gagal: %v", err)
+		log.Printf("Peringatan: Inisialisasi Redis gagal (%v). Aplikasi berjalan tanpa cache Redis.", err)
 	}
 
 	if err = db.AutoMigrate(article.Article{}, user.User{}, user.RefreshToken{}); err != nil {
