@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/nullablenone/go-news-api/internal/utils"
+	"github.com/nullablenone/go-news-api/internal/shared/utils"
 )
 
 // AuthMiddleware memvalidasi token JWT dari header Authorization

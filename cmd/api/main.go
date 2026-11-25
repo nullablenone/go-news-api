@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/nullablenone/go-news-api/config"
 	"github.com/nullablenone/go-news-api/internal/domain/article"
 	"github.com/nullablenone/go-news-api/internal/domain/user"
-	"github.com/nullablenone/go-news-api/routes"
+	"github.com/nullablenone/go-news-api/internal/routes"
+	"github.com/nullablenone/go-news-api/internal/shared/config"
 )
 
 func setGinMode(appEnv string) {

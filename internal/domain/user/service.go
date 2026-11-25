@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/nullablenone/go-news-api/config"
-	"github.com/nullablenone/go-news-api/internal/utils"
+	"github.com/nullablenone/go-news-api/internal/shared/config"
+	"github.com/nullablenone/go-news-api/internal/shared/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 

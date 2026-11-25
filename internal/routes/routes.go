@@ -3,10 +3,10 @@ package routes
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/nullablenone/go-news-api/config"
 	"github.com/nullablenone/go-news-api/internal/domain/article"
 	"github.com/nullablenone/go-news-api/internal/domain/user"
-	"github.com/nullablenone/go-news-api/internal/middleware"
+	"github.com/nullablenone/go-news-api/internal/shared/config"
+	"github.com/nullablenone/go-news-api/internal/shared/middleware"
 )
 
 func SetRoutes(cfg *config.Config, article *article.ArticleHandler, user *user.UserHandler) *gin.Engine {
