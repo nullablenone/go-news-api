@@ -141,10 +141,13 @@ func TestPostgresAndRoutesIntegration(t *testing.T) {
 	// 7. Root, health, docs & OpenAPI endpoints
 	w = performRequest(router, http.MethodGet, "/", nil, "")
 	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"code":200`)
 	assert.Contains(t, w.Body.String(), "is running")
+	assert.Contains(t, w.Body.String(), `"error":null`)
 
 	w = performRequest(router, http.MethodGet, "/health", nil, "")
 	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"code":200`)
 	assert.Contains(t, w.Body.String(), "connected")
 	assert.Contains(t, w.Body.String(), "disabled")
 

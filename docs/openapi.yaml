@@ -153,10 +153,18 @@ components:
     ErrorResponse:
       type: object
       properties:
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Error message for the user.
+        data:
+          nullable: true
+          example: null
         error:
           type: string
-        detail:
-          type: string
+          example: ERROR_CODE
 
 paths:
   /:
@@ -172,6 +180,9 @@ paths:
               schema:
                 type: object
                 properties:
+                  code:
+                    type: integer
+                    example: 200
                   message:
                     type: string
                     example: go-news-api is running
@@ -184,6 +195,9 @@ paths:
                       env:
                         type: string
                         example: development
+                  error:
+                    nullable: true
+                    example: null
 
   /health:
     get:
@@ -198,6 +212,9 @@ paths:
               schema:
                 type: object
                 properties:
+                  code:
+                    type: integer
+                    example: 200
                   message:
                     type: string
                     example: System is healthy.
@@ -216,6 +233,9 @@ paths:
                       time:
                         type: string
                         format: date-time
+                  error:
+                    nullable: true
+                    example: null
         "500":
           description: Database handle unavailable or ping failed
           content:
@@ -242,10 +262,16 @@ paths:
               schema:
                 type: object
                 properties:
+                  code:
+                    type: integer
+                    example: 201
                   message:
                     type: string
                   data:
                     $ref: "#/components/schemas/RegisterResponse"
+                  error:
+                    nullable: true
+                    example: null
         "400":
           description: Invalid request data
           content:
@@ -272,10 +298,16 @@ paths:
               schema:
                 type: object
                 properties:
+                  code:
+                    type: integer
+                    example: 200
                   message:
                     type: string
                   data:
                     $ref: "#/components/schemas/TokenPair"
+                  error:
+                    nullable: true
+                    example: null
         "401":
           description: Invalid credentials
           content:
@@ -298,10 +330,16 @@ paths:
               schema:
                 type: object
                 properties:
+                  code:
+                    type: integer
+                    example: 200
                   message:
                     type: string
                   data:
                     $ref: "#/components/schemas/TokenPair"
+                  error:
+                    nullable: true
+                    example: null
         "401":
           description: Unauthorized or invalid refresh token
           content:
@@ -322,10 +360,18 @@ paths:
               schema:
                 type: object
                 properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
                   data:
                     type: array
                     items:
                       $ref: "#/components/schemas/ArticleResponse"
+                  error:
+                    nullable: true
+                    example: null
 
   /public/articles/{slug}:
     get:
@@ -346,8 +392,16 @@ paths:
               schema:
                 type: object
                 properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
                   data:
                     $ref: "#/components/schemas/ArticleResponse"
+                  error:
+                    nullable: true
+                    example: null
         "404":
           description: Article not found
           content:
@@ -376,10 +430,16 @@ paths:
               schema:
                 type: object
                 properties:
+                  code:
+                    type: integer
+                    example: 201
                   message:
                     type: string
                   data:
                     $ref: "#/components/schemas/ArticleResponse"
+                  error:
+                    nullable: true
+                    example: null
         "400":
           description: Invalid request data
         "401":
@@ -402,10 +462,18 @@ paths:
               schema:
                 type: object
                 properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
                   data:
                     type: array
                     items:
                       $ref: "#/components/schemas/ArticleResponse"
+                  error:
+                    nullable: true
+                    example: null
         "401":
           description: Unauthorized
         "403":
@@ -432,8 +500,16 @@ paths:
               schema:
                 type: object
                 properties:
+                  code:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
                   data:
                     $ref: "#/components/schemas/ArticleResponse"
+                  error:
+                    nullable: true
+                    example: null
         "400":
           description: Invalid ID
         "404":
@@ -464,10 +540,16 @@ paths:
               schema:
                 type: object
                 properties:
+                  code:
+                    type: integer
+                    example: 200
                   message:
                     type: string
                   data:
                     $ref: "#/components/schemas/ArticleResponse"
+                  error:
+                    nullable: true
+                    example: null
         "400":
           description: Invalid request data
         "401":
@@ -494,8 +576,17 @@ paths:
               schema:
                 type: object
                 properties:
+                  code:
+                    type: integer
+                    example: 200
                   message:
                     type: string
+                  data:
+                    nullable: true
+                    example: null
+                  error:
+                    nullable: true
+                    example: null
         "400":
           description: Invalid ID
         "401":

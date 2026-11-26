@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/nullablenone/go-news-api/internal/shared/response"
 	"github.com/nullablenone/go-news-api/internal/shared/utils"
 )
 
@@ -13,13 +14,13 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "access token not found, please login first"})
+			response.AbortError(c, http.StatusUnauthorized, "access token not found, please login first", "UNAUTHORIZED")
 			return
 		}
 
 		accessTokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if accessTokenString == authHeader {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "access token format must be 'Bearer <access_token>'"})
+			response.AbortError(c, http.StatusUnauthorized, "access token format must be 'Bearer <access_token>'", "UNAUTHORIZED")
 			return
 		}
 
@@ -28,18 +29,18 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 		})
 
 		if err != nil || !accessToken.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired access token"})
+			response.AbortError(c, http.StatusUnauthorized, "invalid or expired access token", "UNAUTHORIZED")
 			return
 		}
 
 		claims, ok := accessToken.Claims.(*utils.JWTClaims)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "failed to parse access token claims"})
+			response.AbortError(c, http.StatusUnauthorized, "failed to parse access token claims", "UNAUTHORIZED")
 			return
 		}
 
 		if claims.TokenType != "access" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "provided token is not an access token"})
+			response.AbortError(c, http.StatusUnauthorized, "provided token is not an access token", "UNAUTHORIZED")
 			return
 		}
 
@@ -54,13 +55,13 @@ func RefreshTokenMiddleware(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "refresh token not found, please login first"})
+			response.AbortError(c, http.StatusUnauthorized, "refresh token not found, please login first", "UNAUTHORIZED")
 			return
 		}
 
 		refreshTokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if refreshTokenString == authHeader {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "refresh token format must be 'Bearer <refresh_token>'"})
+			response.AbortError(c, http.StatusUnauthorized, "refresh token format must be 'Bearer <refresh_token>'", "UNAUTHORIZED")
 			return
 		}
 
@@ -69,18 +70,18 @@ func RefreshTokenMiddleware(secret string) gin.HandlerFunc {
 		})
 
 		if err != nil || !refreshToken.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired refresh token"})
+			response.AbortError(c, http.StatusUnauthorized, "invalid or expired refresh token", "UNAUTHORIZED")
 			return
 		}
 
 		claims, ok := refreshToken.Claims.(*utils.JWTClaims)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "failed to parse refresh token claims"})
+			response.AbortError(c, http.StatusUnauthorized, "failed to parse refresh token claims", "UNAUTHORIZED")
 			return
 		}
 
 		if claims.TokenType != "refresh" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "provided token is not a refresh token"})
+			response.AbortError(c, http.StatusUnauthorized, "provided token is not a refresh token", "UNAUTHORIZED")
 			return
 		}
 
@@ -95,13 +96,13 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("role")
 		if !exists {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: role not found"})
+			response.AbortError(c, http.StatusForbidden, "access denied: role not found", "FORBIDDEN")
 			return
 		}
 
 		userRole, ok := role.(string)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: invalid role format"})
+			response.AbortError(c, http.StatusForbidden, "access denied: invalid role format", "FORBIDDEN")
 			return
 		}
 		isAllowed := false
@@ -114,7 +115,7 @@ func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 		}
 
 		if !isAllowed {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied: insufficient permissions"})
+			response.AbortError(c, http.StatusForbidden, "access denied: insufficient permissions", "FORBIDDEN")
 			return
 		}
 

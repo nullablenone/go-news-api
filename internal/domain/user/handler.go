@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/nullablenone/go-news-api/internal/shared/response"
 )
 
 type UserHandler struct {
@@ -17,79 +18,70 @@ func NewUserHandler(service UserService) *UserHandler {
 func (h *UserHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request data", "detail": err.Error()})
+		response.Error(c, http.StatusBadRequest, "invalid request data: "+err.Error(), "VALIDATION_ERROR")
 		return
 	}
 
 	user, err := h.service.Register(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register", "detail": err.Error()})
+		response.Error(c, http.StatusInternalServerError, "failed to register: "+err.Error(), "INTERNAL_ERROR")
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "registration successful",
-		"data":    ToRegisterResponse(user),
-	})
+	response.Success(c, http.StatusCreated, "registration successful", ToRegisterResponse(user))
 }
 
 func (h *UserHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request data", "detail": err.Error()})
+		response.Error(c, http.StatusBadRequest, "invalid request data: "+err.Error(), "VALIDATION_ERROR")
 		return
 	}
 
 	accessToken, refreshToken, err := h.service.Login(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusUnauthorized, err.Error(), "UNAUTHORIZED")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "login successful",
-		"data": LoginResponse{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
-		},
+	response.Success(c, http.StatusOK, "login successful", LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	})
 }
 
 func (h *UserHandler) RefreshToken(c *gin.Context) {
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized user"})
+		response.Error(c, http.StatusUnauthorized, "unauthorized user", "UNAUTHORIZED")
 		return
 	}
 	userID, ok := userIDVal.(uint)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user ID format"})
+		response.Error(c, http.StatusUnauthorized, "invalid user ID format", "UNAUTHORIZED")
 		return
 	}
 
 	refreshTokenVal, exists := c.Get("refresh_token")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "refresh token not found"})
+		response.Error(c, http.StatusUnauthorized, "refresh token not found", "UNAUTHORIZED")
 		return
 	}
 	refreshTokenStr, ok := refreshTokenVal.(string)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid refresh token format"})
+		response.Error(c, http.StatusUnauthorized, "invalid refresh token format", "UNAUTHORIZED")
 		return
 	}
 
 	accessToken, refreshToken, err := h.service.RefreshToken(c.Request.Context(), userID, refreshTokenStr)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusUnauthorized, err.Error(), "UNAUTHORIZED")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "token refreshed successfully",
-		"data": RefreshTokenResponse{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
-		},
+	response.Success(c, http.StatusOK, "token refreshed successfully", RefreshTokenResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	})
 }
 

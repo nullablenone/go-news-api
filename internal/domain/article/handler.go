@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/nullablenone/go-news-api/internal/shared/response"
 )
 
 type ArticleHandler struct {
@@ -18,121 +19,115 @@ func NewArticleHandler(service ArticleService) *ArticleHandler {
 func (h *ArticleHandler) CreateArticle(c *gin.Context) {
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized user"})
+		response.Error(c, http.StatusUnauthorized, "unauthorized user", "UNAUTHORIZED")
 		return
 	}
 	userID, ok := userIDVal.(uint)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user ID format"})
+		response.Error(c, http.StatusUnauthorized, "invalid user ID format", "UNAUTHORIZED")
 		return
 	}
 
 	var req CreateArticleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request data", "detail": err.Error()})
+		response.Error(c, http.StatusBadRequest, "invalid request data: "+err.Error(), "VALIDATION_ERROR")
 		return
 	}
 
 	article, err := h.service.CreateArticle(c.Request.Context(), userID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save article"})
+		response.Error(c, http.StatusInternalServerError, "failed to save article", "INTERNAL_ERROR")
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "article created successfully",
-		"data":    ToArticleResponse(article),
-	})
+	response.Success(c, http.StatusCreated, "article created successfully", ToArticleResponse(article))
 }
 
 func (h *ArticleHandler) UpdateArticle(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+		response.Error(c, http.StatusBadRequest, "invalid ID", "BAD_REQUEST")
 		return
 	}
 
 	var req UpdateArticleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request data", "detail": err.Error()})
+		response.Error(c, http.StatusBadRequest, "invalid request data: "+err.Error(), "VALIDATION_ERROR")
 		return
 	}
 
 	article, err := h.service.UpdateArticle(c.Request.Context(), uint(id), req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, err.Error(), "INTERNAL_ERROR")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "article updated successfully",
-		"data":    ToArticleResponse(article),
-	})
+	response.Success(c, http.StatusOK, "article updated successfully", ToArticleResponse(article))
 }
 
 func (h *ArticleHandler) GetArticles(c *gin.Context) {
 	articles, err := h.service.GetAllArticles(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch articles"})
+		response.Error(c, http.StatusInternalServerError, "failed to fetch articles", "INTERNAL_ERROR")
 		return
 	}
 
-	var response []ArticleResponse
+	items := make([]ArticleResponse, 0, len(articles))
 	for _, a := range articles {
-		response = append(response, ToArticleResponse(a))
+		items = append(items, ToArticleResponse(a))
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": response})
+	response.Success(c, http.StatusOK, "articles fetched successfully", items)
 }
 
 func (h *ArticleHandler) GetArticle(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+		response.Error(c, http.StatusBadRequest, "invalid ID", "BAD_REQUEST")
 		return
 	}
 
 	article, err := h.service.GetArticleByID(c.Request.Context(), uint(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "article not found"})
+		response.Error(c, http.StatusNotFound, "article not found", "NOT_FOUND")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": ToArticleResponse(article)})
+	response.Success(c, http.StatusOK, "article fetched successfully", ToArticleResponse(article))
 }
 
 func (h *ArticleHandler) DeleteArticle(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
+		response.Error(c, http.StatusBadRequest, "invalid ID", "BAD_REQUEST")
 		return
 	}
 
 	err = h.service.DeleteArticle(c.Request.Context(), uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete article"})
+		response.Error(c, http.StatusInternalServerError, "failed to delete article", "INTERNAL_ERROR")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "article deleted successfully"})
+	response.Success(c, http.StatusOK, "article deleted successfully", nil)
 }
 
 func (h *ArticleHandler) ListArticles(c *gin.Context) {
 	articles, err := h.service.GetAllArticles(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch articles"})
+		response.Error(c, http.StatusInternalServerError, "failed to fetch articles", "INTERNAL_ERROR")
 		return
 	}
 
-	var response []ArticleResponse
+	items := make([]ArticleResponse, 0, len(articles))
 	for _, a := range articles {
-		response = append(response, ToArticleResponse(a))
+		items = append(items, ToArticleResponse(a))
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": response})
+	response.Success(c, http.StatusOK, "articles fetched successfully", items)
 }
 
 func (h *ArticleHandler) GetArticleBySlug(c *gin.Context) {
@@ -140,9 +135,9 @@ func (h *ArticleHandler) GetArticleBySlug(c *gin.Context) {
 
 	article, err := h.service.GetArticleBySlug(c.Request.Context(), slug)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "article not found"})
+		response.Error(c, http.StatusNotFound, "article not found", "NOT_FOUND")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": ToArticleResponse(article)})
+	response.Success(c, http.StatusOK, "article fetched successfully", ToArticleResponse(article))
 }

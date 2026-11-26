@@ -32,6 +32,7 @@ REST API service for managing news articles, user authentication, and role-based
 │       ├── config/
 │       ├── database/
 │       ├── middleware/
+│       ├── response/
 │       └── utils/
 ├── .env.example
 └── go.mod

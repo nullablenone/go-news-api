@@ -11,6 +11,7 @@ import (
 	"github.com/nullablenone/go-news-api/internal/domain/user"
 	"github.com/nullablenone/go-news-api/internal/shared/config"
 	"github.com/nullablenone/go-news-api/internal/shared/middleware"
+	"github.com/nullablenone/go-news-api/internal/shared/response"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -30,25 +31,22 @@ func SetRoutes(cfg *config.Config, db *gorm.DB, rdb *redis.Client, article *arti
 
 	// Root Information
 	router.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": cfg.App.Name + " is running",
-			"data": gin.H{
-				"app": cfg.App.Name,
-				"env": cfg.App.Env,
-			},
+		response.Success(c, http.StatusOK, cfg.App.Name+" is running", gin.H{
+			"app": cfg.App.Name,
+			"env": cfg.App.Env,
 		})
 	})
 
 	// Health Check
 	router.GET("/health", func(c *gin.Context) {
 		if db == nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database handle is unavailable"})
+			response.Error(c, http.StatusInternalServerError, "Database handle is unavailable", "INTERNAL_ERROR")
 			return
 		}
 
 		sqlDB, err := db.DB()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database handle is unavailable"})
+			response.Error(c, http.StatusInternalServerError, "Database handle is unavailable", "INTERNAL_ERROR")
 			return
 		}
 
@@ -56,7 +54,7 @@ func SetRoutes(cfg *config.Config, db *gorm.DB, rdb *redis.Client, article *arti
 		defer cancel()
 
 		if err := sqlDB.PingContext(ctx); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database ping failed: " + err.Error()})
+			response.Error(c, http.StatusInternalServerError, "Database ping failed: "+err.Error(), "INTERNAL_ERROR")
 			return
 		}
 
@@ -69,14 +67,11 @@ func SetRoutes(cfg *config.Config, db *gorm.DB, rdb *redis.Client, article *arti
 			}
 		}
 
-		c.JSON(http.StatusOK, gin.H{
-			"message": "System is healthy.",
-			"data": gin.H{
-				"status":   "UP",
-				"database": "connected",
-				"redis":    redisStatus,
-				"time":     time.Now().Format(time.RFC3339),
-			},
+		response.Success(c, http.StatusOK, "System is healthy.", gin.H{
+			"status":   "UP",
+			"database": "connected",
+			"redis":    redisStatus,
+			"time":     time.Now().Format(time.RFC3339),
 		})
 	})
 
