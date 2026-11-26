@@ -14,6 +14,7 @@ import (
 	"github.com/nullablenone/go-news-api/internal/domain/article"
 	"github.com/nullablenone/go-news-api/internal/domain/user"
 	"github.com/nullablenone/go-news-api/internal/shared/config"
+	"github.com/nullablenone/go-news-api/internal/shared/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,7 +33,7 @@ func TestPostgresAndRoutesIntegration(t *testing.T) {
 		t.Skipf("skipping integration test: %v", err)
 	}
 
-	db, err := config.ConnectPostgre(cfg.DB)
+	db, err := database.ConnectPostgre(cfg.DB)
 	if err != nil {
 		t.Skipf("skipping integration test: PostgreSQL unavailable: %v", err)
 	}

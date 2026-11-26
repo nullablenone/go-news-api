@@ -30,6 +30,7 @@ REST API service for managing news articles, user authentication, and role-based
 │   │   └── routes.go
 │   └── shared/
 │       ├── config/
+│       ├── database/
 │       ├── middleware/
 │       └── utils/
 ├── .env.example

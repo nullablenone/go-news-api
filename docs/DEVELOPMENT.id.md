@@ -11,10 +11,11 @@ Selamat datang di dokumentasi pengembang untuk **Go News API**. Dokumen ini ditu
 Basis kode ini menggunakan struktur Clean Architecture yang rapi. Berikut adalah direktori utama dan file entri penting:
 
 - **`cmd/api/main.go`**: Bootstrapper aplikasi. Mengatur pemuatan konfigurasi, mode Gin, auto-migrasi database, inisialisasi client cache opsional, wiring dependency injection, dan menjalankan HTTP server.
-- **`internal/shared/config/`**: Konfigurasi dan inisialisasi driver:
+- **`internal/shared/config/`**: Pemuatan konfigurasi:
   - `internal/shared/config/config.go`: Memuat file `.env` dan mengelompokkan konfigurasi ke `AppConfig`, `DBConfig`, `RedisConfig`, dan `JWTConfig`.
-  - `internal/shared/config/postgresql.go`: Menyiapkan koneksi database PostgreSQL menggunakan GORM beserta konfigurasi pool-nya.
-  - `internal/shared/config/redis.go`: Menginisialisasi koneksi client Redis dan melakukan verifikasi ping, serta mengembalikan `nil` jika tidak dikonfigurasi.
+- **`internal/shared/database/`**: Inisialisasi driver database dan cache:
+  - `internal/shared/database/postgresql.go`: Menyiapkan koneksi database PostgreSQL menggunakan GORM beserta konfigurasi pool-nya.
+  - `internal/shared/database/redis.go`: Menginisialisasi koneksi client Redis dan melakukan verifikasi ping, serta mengembalikan `nil` jika tidak dikonfigurasi.
 - **`internal/domain/`**: Logika bisnis inti yang dibagi per domain, berisi model skema, DTO, repositori, servis, dan handler:
   - **`internal/domain/user/`**: Registrasi, login, rotasi refresh token, model data pengguna, dan database seeder admin.
   - **`internal/domain/article/`**: Operasi CRUD artikel, pemetaan DTO, seeder artikel dummy, dan integrasi cache Redis opsional di `service.go`.

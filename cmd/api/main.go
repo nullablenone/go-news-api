@@ -1,15 +1,22 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nullablenone/go-news-api/internal/domain/article"
 	"github.com/nullablenone/go-news-api/internal/domain/user"
 	"github.com/nullablenone/go-news-api/internal/routes"
 	"github.com/nullablenone/go-news-api/internal/shared/config"
+	"github.com/nullablenone/go-news-api/internal/shared/database"
 )
 
 func setGinMode(appEnv string) {
@@ -31,12 +38,12 @@ func main() {
 
 	setGinMode(cfg.App.Env)
 
-	db, err := config.ConnectPostgre(cfg.DB)
+	db, err := database.ConnectPostgre(cfg.DB)
 	if err != nil {
 		log.Fatalf("failed to connect to PostgreSQL: %v", err)
 	}
 
-	rdb, err := config.ConnectRedis(cfg.Redis)
+	rdb, err := database.ConnectRedis(cfg.Redis)
 	if err != nil {
 		log.Printf("warning: failed to connect to Redis (%v). Running without Redis cache", err)
 	}
@@ -61,9 +68,42 @@ func main() {
 
 	router := routes.SetRoutes(cfg, db, rdb, articleHandler, userHandler)
 	addr := fmt.Sprintf(":%s", cfg.App.Port)
-	log.Printf("starting %s (%s) on %s", cfg.App.Name, cfg.App.Env, addr)
-	if err = router.Run(addr); err != nil {
-		log.Fatalf("failed to start HTTP server on %s: %v", addr, err)
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: router,
 	}
 
+	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		log.Printf("starting %s (%s) on %s", cfg.App.Name, cfg.App.Env, addr)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("failed to start HTTP server on %s: %v", addr, err)
+		}
+	}()
+
+	<-sigCtx.Done()
+	log.Println("shutting down server gracefully...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("warning: forced HTTP server shutdown: %v", err)
+	}
+
+	if rdb != nil {
+		if err := rdb.Close(); err != nil {
+			log.Printf("warning: failed to close Redis connection: %v", err)
+		}
+	}
+
+	if sqlDB, err := db.DB(); err == nil {
+		if err := sqlDB.Close(); err != nil {
+			log.Printf("warning: failed to close PostgreSQL connection: %v", err)
+		}
+	}
+
+	log.Println("server exited cleanly")
 }

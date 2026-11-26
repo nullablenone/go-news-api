@@ -1,4 +1,4 @@
-package config
+package database
 
 import (
 	"context"
@@ -6,10 +6,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/nullablenone/go-news-api/internal/shared/config"
 	"github.com/redis/go-redis/v9"
 )
 
-func ConnectRedis(cfg RedisConfig) (*redis.Client, error) {
+func ConnectRedis(cfg config.RedisConfig) (*redis.Client, error) {
 	if cfg.Host == "" || cfg.Port == "" {
 		log.Println("Redis config not set, running without Redis cache")
 		return nil, nil

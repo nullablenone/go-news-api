@@ -11,10 +11,11 @@ Welcome to the developer documentation for the **Go News API**. This document is
 The codebase follows a structured layout. Below are the key directories and entry files:
 
 - **`cmd/api/main.go`**: The application bootstrapper. Handles config loading, Gin mode setup, database automigration, optional Redis client setup, dependency injection wiring, and server startup.
-- **`internal/shared/config/`**: Configuration and driver initializations:
+- **`internal/shared/config/`**: Configuration loading:
   - `internal/shared/config/config.go`: Loads `.env` and groups settings into `AppConfig`, `DBConfig`, `RedisConfig`, and `JWTConfig`.
-  - `internal/shared/config/postgresql.go`: Sets up PostgreSQL connection and pool settings using GORM.
-  - `internal/shared/config/redis.go`: Initiates and pings the Redis client connection, returning `nil` when unconfigured.
+- **`internal/shared/database/`**: Database and cache driver initializations:
+  - `internal/shared/database/postgresql.go`: Sets up PostgreSQL connection and pool settings using GORM.
+  - `internal/shared/database/redis.go`: Initiates and pings the Redis client connection, returning `nil` when unconfigured.
 - **`internal/domain/`**: Core business sub-domains containing schema models, DTOs, interfaces, and implementations:
   - **`internal/domain/user/`**: User registration, login, refresh token rotation, data models, and admin seeder.
   - **`internal/domain/article/`**: Article CRUD operations, DTO mappers, seeders, and optional Redis cache integration in `service.go`.
