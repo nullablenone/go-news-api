@@ -33,7 +33,7 @@ func (h *ArticleHandler) CreateArticle(c *gin.Context) {
 		return
 	}
 
-	article, err := h.service.CreateArticle(userID, req)
+	article, err := h.service.CreateArticle(c.Request.Context(), userID, req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save article"})
 		return
@@ -59,7 +59,7 @@ func (h *ArticleHandler) UpdateArticle(c *gin.Context) {
 		return
 	}
 
-	article, err := h.service.UpdateArticle(uint(id), req)
+	article, err := h.service.UpdateArticle(c.Request.Context(), uint(id), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -72,7 +72,7 @@ func (h *ArticleHandler) UpdateArticle(c *gin.Context) {
 }
 
 func (h *ArticleHandler) GetArticles(c *gin.Context) {
-	articles, err := h.service.GetAllArticles()
+	articles, err := h.service.GetAllArticles(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch articles"})
 		return
@@ -94,7 +94,7 @@ func (h *ArticleHandler) GetArticle(c *gin.Context) {
 		return
 	}
 
-	article, err := h.service.GetArticleByID(uint(id))
+	article, err := h.service.GetArticleByID(c.Request.Context(), uint(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "article not found"})
 		return
@@ -111,7 +111,7 @@ func (h *ArticleHandler) DeleteArticle(c *gin.Context) {
 		return
 	}
 
-	err = h.service.DeleteArticle(uint(id))
+	err = h.service.DeleteArticle(c.Request.Context(), uint(id))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete article"})
 		return
@@ -121,7 +121,7 @@ func (h *ArticleHandler) DeleteArticle(c *gin.Context) {
 }
 
 func (h *ArticleHandler) ListArticles(c *gin.Context) {
-	articles, err := h.service.GetAllArticles()
+	articles, err := h.service.GetAllArticles(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch articles"})
 		return
@@ -138,7 +138,7 @@ func (h *ArticleHandler) ListArticles(c *gin.Context) {
 func (h *ArticleHandler) GetArticleBySlug(c *gin.Context) {
 	slug := c.Param("slug")
 
-	article, err := h.service.GetArticleBySlug(slug)
+	article, err := h.service.GetArticleBySlug(c.Request.Context(), slug)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "article not found"})
 		return

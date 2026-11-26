@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -26,7 +27,7 @@ func newMockUserRepo() *mockUserRepo {
 	}
 }
 
-func (m *mockUserRepo) Create(u *User) error {
+func (m *mockUserRepo) Create(_ context.Context, u *User) error {
 	u.ID = m.nextID
 	m.nextID++
 	m.users[u.ID] = *u
@@ -34,7 +35,7 @@ func (m *mockUserRepo) Create(u *User) error {
 	return nil
 }
 
-func (m *mockUserRepo) FindByEmail(email string) (User, error) {
+func (m *mockUserRepo) FindByEmail(_ context.Context, email string) (User, error) {
 	u, ok := m.usersByMail[email]
 	if !ok {
 		return User{}, errors.New("not found")
@@ -42,7 +43,7 @@ func (m *mockUserRepo) FindByEmail(email string) (User, error) {
 	return u, nil
 }
 
-func (m *mockUserRepo) FindByID(id uint) (User, error) {
+func (m *mockUserRepo) FindByID(_ context.Context, id uint) (User, error) {
 	u, ok := m.users[id]
 	if !ok {
 		return User{}, errors.New("not found")
@@ -50,13 +51,13 @@ func (m *mockUserRepo) FindByID(id uint) (User, error) {
 	return u, nil
 }
 
-func (m *mockUserRepo) CreateRefreshToken(token *RefreshToken) error {
+func (m *mockUserRepo) CreateRefreshToken(_ context.Context, token *RefreshToken) error {
 	cp := *token
 	m.tokens[token.Token] = &cp
 	return nil
 }
 
-func (m *mockUserRepo) FindRefreshToken(tokenString string) (*RefreshToken, error) {
+func (m *mockUserRepo) FindRefreshToken(_ context.Context, tokenString string) (*RefreshToken, error) {
 	t, ok := m.tokens[tokenString]
 	if !ok {
 		return nil, errors.New("not found")
@@ -64,14 +65,14 @@ func (m *mockUserRepo) FindRefreshToken(tokenString string) (*RefreshToken, erro
 	return t, nil
 }
 
-func (m *mockUserRepo) RevokeRefreshToken(tokenString string) error {
+func (m *mockUserRepo) RevokeRefreshToken(_ context.Context, tokenString string) error {
 	if t, ok := m.tokens[tokenString]; ok {
 		t.IsRevoked = true
 	}
 	return nil
 }
 
-func (m *mockUserRepo) RevokeAllUserTokens(userID uint) error {
+func (m *mockUserRepo) RevokeAllUserTokens(_ context.Context, userID uint) error {
 	for _, t := range m.tokens {
 		if t.UserID == userID {
 			t.IsRevoked = true
@@ -81,11 +82,12 @@ func (m *mockUserRepo) RevokeAllUserTokens(userID uint) error {
 }
 
 func TestUserServiceRegisterLoginAndRefreshRotation(t *testing.T) {
+	ctx := context.Background()
 	repo := newMockUserRepo()
 	cfg := &config.Config{JWT: config.JWTConfig{Secret: "test-secret"}}
 	svc := NewUserService(repo, cfg)
 
-	u, err := svc.Register(RegisterRequest{
+	u, err := svc.Register(ctx, RegisterRequest{
 		Name:     "Alice",
 		Email:    "alice@example.com",
 		Password: "password123",
@@ -94,15 +96,15 @@ func TestUserServiceRegisterLoginAndRefreshRotation(t *testing.T) {
 	assert.Equal(t, "user", u.Role)
 	assert.NotEqual(t, "password123", u.Password)
 
-	_, _, err = svc.Login(LoginRequest{Email: "alice@example.com", Password: "wrong"})
+	_, _, err = svc.Login(ctx, LoginRequest{Email: "alice@example.com", Password: "wrong"})
 	assert.Error(t, err)
 
-	access1, refresh1, err := svc.Login(LoginRequest{Email: "alice@example.com", Password: "password123"})
+	access1, refresh1, err := svc.Login(ctx, LoginRequest{Email: "alice@example.com", Password: "password123"})
 	require.NoError(t, err)
 	assert.NotEmpty(t, access1)
 	assert.NotEmpty(t, refresh1)
 
-	access2, refresh2, err := svc.RefreshToken(u.ID, refresh1)
+	access2, refresh2, err := svc.RefreshToken(ctx, u.ID, refresh1)
 	require.NoError(t, err)
 	assert.NotEqual(t, refresh1, refresh2)
 
@@ -111,7 +113,7 @@ func TestUserServiceRegisterLoginAndRefreshRotation(t *testing.T) {
 	assert.Equal(t, u.ID, claims.UserID)
 
 	// Reusing an already-rotated refresh token must revoke all user tokens.
-	_, _, err = svc.RefreshToken(u.ID, refresh1)
+	_, _, err = svc.RefreshToken(ctx, u.ID, refresh1)
 	assert.Error(t, err)
 	assert.True(t, repo.tokens[refresh2].IsRevoked)
 }

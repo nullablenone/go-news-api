@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -10,9 +11,9 @@ import (
 )
 
 type UserService interface {
-	Register(req RegisterRequest) (User, error)
-	Login(req LoginRequest) (string, string, error)
-	RefreshToken(userID uint, oldRefreshToken string) (string, string, error)
+	Register(ctx context.Context, req RegisterRequest) (User, error)
+	Login(ctx context.Context, req LoginRequest) (string, string, error)
+	RefreshToken(ctx context.Context, userID uint, oldRefreshToken string) (string, string, error)
 }
 
 type userService struct {
@@ -27,7 +28,7 @@ func NewUserService(repo UserRepository, cfg *config.Config) UserService {
 	}
 }
 
-func (s *userService) Register(req RegisterRequest) (User, error) {
+func (s *userService) Register(ctx context.Context, req RegisterRequest) (User, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return User{}, err
@@ -40,7 +41,7 @@ func (s *userService) Register(req RegisterRequest) (User, error) {
 		Role:     "user",
 	}
 
-	err = s.repo.Create(&user)
+	err = s.repo.Create(ctx, &user)
 	if err != nil {
 		return User{}, err
 	}
@@ -48,8 +49,8 @@ func (s *userService) Register(req RegisterRequest) (User, error) {
 	return user, nil
 }
 
-func (s *userService) Login(req LoginRequest) (string, string, error) {
-	user, err := s.repo.FindByEmail(req.Email)
+func (s *userService) Login(ctx context.Context, req LoginRequest) (string, string, error) {
+	user, err := s.repo.FindByEmail(ctx, req.Email)
 	if err != nil {
 		return "", "", errors.New("invalid email or password")
 	}
@@ -75,30 +76,30 @@ func (s *userService) Login(req LoginRequest) (string, string, error) {
 		IsRevoked: false,
 		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
 	}
-	if err := s.repo.CreateRefreshToken(&refreshTokenModel); err != nil {
+	if err := s.repo.CreateRefreshToken(ctx, &refreshTokenModel); err != nil {
 		return "", "", errors.New("failed to save refresh token")
 	}
 
 	return accessToken, refreshToken, nil
 }
 
-func (s *userService) RefreshToken(userID uint, oldRefreshToken string) (string, string, error) {
-	user, err := s.repo.FindByID(userID)
+func (s *userService) RefreshToken(ctx context.Context, userID uint, oldRefreshToken string) (string, string, error) {
+	user, err := s.repo.FindByID(ctx, userID)
 	if err != nil {
 		return "", "", errors.New("user not found")
 	}
 
-	storedToken, err := s.repo.FindRefreshToken(oldRefreshToken)
+	storedToken, err := s.repo.FindRefreshToken(ctx, oldRefreshToken)
 	if err != nil {
 		return "", "", errors.New("unrecognized or invalid refresh token")
 	}
 
 	if storedToken.IsRevoked {
-		_ = s.repo.RevokeAllUserTokens(userID)
+		_ = s.repo.RevokeAllUserTokens(ctx, userID)
 		return "", "", errors.New("revoked token reuse detected, all sessions have been revoked for security")
 	}
 
-	if err := s.repo.RevokeRefreshToken(oldRefreshToken); err != nil {
+	if err := s.repo.RevokeRefreshToken(ctx, oldRefreshToken); err != nil {
 		return "", "", errors.New("failed to revoke old refresh token")
 	}
 
@@ -118,7 +119,7 @@ func (s *userService) RefreshToken(userID uint, oldRefreshToken string) (string,
 		IsRevoked: false,
 		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
 	}
-	if err := s.repo.CreateRefreshToken(&newTokenModel); err != nil {
+	if err := s.repo.CreateRefreshToken(ctx, &newTokenModel); err != nil {
 		return "", "", errors.New("failed to save new refresh token")
 	}
 

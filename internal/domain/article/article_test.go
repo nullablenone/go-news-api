@@ -1,6 +1,7 @@
 package article
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -22,7 +23,7 @@ func newMockArticleRepo() *mockArticleRepo {
 	}
 }
 
-func (m *mockArticleRepo) Create(a *Article) error {
+func (m *mockArticleRepo) Create(_ context.Context, a *Article) error {
 	a.ID = m.nextID
 	m.nextID++
 	m.items[a.ID] = *a
@@ -30,7 +31,7 @@ func (m *mockArticleRepo) Create(a *Article) error {
 	return nil
 }
 
-func (m *mockArticleRepo) FindAll() ([]Article, error) {
+func (m *mockArticleRepo) FindAll(_ context.Context) ([]Article, error) {
 	out := make([]Article, 0, len(m.items))
 	for _, a := range m.items {
 		out = append(out, a)
@@ -38,7 +39,7 @@ func (m *mockArticleRepo) FindAll() ([]Article, error) {
 	return out, nil
 }
 
-func (m *mockArticleRepo) FindByID(id uint) (Article, error) {
+func (m *mockArticleRepo) FindByID(_ context.Context, id uint) (Article, error) {
 	a, ok := m.items[id]
 	if !ok {
 		return Article{}, errors.New("not found")
@@ -46,7 +47,7 @@ func (m *mockArticleRepo) FindByID(id uint) (Article, error) {
 	return a, nil
 }
 
-func (m *mockArticleRepo) FindBySlug(slug string) (Article, error) {
+func (m *mockArticleRepo) FindBySlug(_ context.Context, slug string) (Article, error) {
 	id, ok := m.bySlug[slug]
 	if !ok {
 		return Article{}, errors.New("not found")
@@ -54,7 +55,7 @@ func (m *mockArticleRepo) FindBySlug(slug string) (Article, error) {
 	return m.items[id], nil
 }
 
-func (m *mockArticleRepo) Update(a *Article) error {
+func (m *mockArticleRepo) Update(_ context.Context, a *Article) error {
 	old, ok := m.items[a.ID]
 	if !ok {
 		return errors.New("not found")
@@ -65,7 +66,7 @@ func (m *mockArticleRepo) Update(a *Article) error {
 	return nil
 }
 
-func (m *mockArticleRepo) Delete(id uint) error {
+func (m *mockArticleRepo) Delete(_ context.Context, id uint) error {
 	a, ok := m.items[id]
 	if !ok {
 		return errors.New("not found")
@@ -76,10 +77,11 @@ func (m *mockArticleRepo) Delete(id uint) error {
 }
 
 func TestArticleServiceWithoutRedis(t *testing.T) {
+	ctx := context.Background()
 	repo := newMockArticleRepo()
 	svc := NewArticleService(repo, nil)
 
-	created, err := svc.CreateArticle(1, CreateArticleRequest{
+	created, err := svc.CreateArticle(ctx, 1, CreateArticleRequest{
 		Title:    "Go Testing",
 		Slug:     "go-testing",
 		Summary:  "Summary",
@@ -90,15 +92,15 @@ func TestArticleServiceWithoutRedis(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, uint(1), created.ID)
 
-	all, err := svc.GetAllArticles()
+	all, err := svc.GetAllArticles(ctx)
 	require.NoError(t, err)
 	assert.Len(t, all, 1)
 
-	bySlug, err := svc.GetArticleBySlug("go-testing")
+	bySlug, err := svc.GetArticleBySlug(ctx, "go-testing")
 	require.NoError(t, err)
 	assert.Equal(t, "Go Testing", bySlug.Title)
 
-	updated, err := svc.UpdateArticle(created.ID, UpdateArticleRequest{
+	updated, err := svc.UpdateArticle(ctx, created.ID, UpdateArticleRequest{
 		Title:    "Go Testing Updated",
 		Slug:     "go-testing-updated",
 		Summary:  "Updated Summary",
@@ -109,9 +111,9 @@ func TestArticleServiceWithoutRedis(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "go-testing-updated", updated.Slug)
 
-	err = svc.DeleteArticle(created.ID)
+	err = svc.DeleteArticle(ctx, created.ID)
 	require.NoError(t, err)
 
-	_, err = svc.GetArticleByID(created.ID)
+	_, err = svc.GetArticleByID(ctx, created.ID)
 	assert.Error(t, err)
 }

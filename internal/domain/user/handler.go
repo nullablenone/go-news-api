@@ -21,7 +21,7 @@ func (h *UserHandler) Register(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.Register(req)
+	user, err := h.service.Register(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register", "detail": err.Error()})
 		return
@@ -40,7 +40,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.service.Login(req)
+	accessToken, refreshToken, err := h.service.Login(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -78,7 +78,7 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, err := h.service.RefreshToken(userID, refreshTokenStr)
+	accessToken, refreshToken, err := h.service.RefreshToken(c.Request.Context(), userID, refreshTokenStr)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return

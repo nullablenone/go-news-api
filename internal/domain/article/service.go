@@ -11,17 +11,18 @@ import (
 
 const (
 	cacheTTL              = 1 * time.Hour
+	cacheTimeout          = 1 * time.Second
 	cacheKeyAllArticles   = "articles:all"
 	cacheKeyArticlePrefix = "article:slug:"
 )
 
 type ArticleService interface {
-	CreateArticle(authorID uint, req CreateArticleRequest) (Article, error)
-	GetAllArticles() ([]Article, error)
-	GetArticleByID(id uint) (Article, error)
-	GetArticleBySlug(slug string) (Article, error)
-	UpdateArticle(id uint, req UpdateArticleRequest) (Article, error)
-	DeleteArticle(id uint) error
+	CreateArticle(ctx context.Context, authorID uint, req CreateArticleRequest) (Article, error)
+	GetAllArticles(ctx context.Context) ([]Article, error)
+	GetArticleByID(ctx context.Context, id uint) (Article, error)
+	GetArticleBySlug(ctx context.Context, slug string) (Article, error)
+	UpdateArticle(ctx context.Context, id uint, req UpdateArticleRequest) (Article, error)
+	DeleteArticle(ctx context.Context, id uint) error
 }
 
 type articleService struct {
@@ -36,7 +37,7 @@ func NewArticleService(repo ArticleRepository, rdb *redis.Client) ArticleService
 	}
 }
 
-func (s *articleService) CreateArticle(authorID uint, req CreateArticleRequest) (Article, error) {
+func (s *articleService) CreateArticle(ctx context.Context, authorID uint, req CreateArticleRequest) (Article, error) {
 	article := Article{
 		Title:    req.Title,
 		Slug:     req.Slug,
@@ -47,21 +48,20 @@ func (s *articleService) CreateArticle(authorID uint, req CreateArticleRequest) 
 		Content:  req.Content,
 	}
 
-	err := s.repo.Create(&article)
+	err := s.repo.Create(ctx, &article)
 	if err != nil {
 		return Article{}, err
 	}
 
-	res, err := s.repo.FindByID(article.ID)
+	res, err := s.repo.FindByID(ctx, article.ID)
 	if err == nil {
-		s.clearArticleCache("")
+		s.clearArticleCache(ctx, "")
 	}
 
 	return res, err
 }
 
-func (s *articleService) GetAllArticles() ([]Article, error) {
-	ctx := context.Background()
+func (s *articleService) GetAllArticles(ctx context.Context) ([]Article, error) {
 	var articles []Article
 
 	if s.getCache(ctx, cacheKeyAllArticles, &articles) {
@@ -70,7 +70,7 @@ func (s *articleService) GetAllArticles() ([]Article, error) {
 	}
 
 	log.Println("====== [DB] Cache Miss: fetching all articles from PostgreSQL ======")
-	articles, err := s.repo.FindAll()
+	articles, err := s.repo.FindAll(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -79,8 +79,7 @@ func (s *articleService) GetAllArticles() ([]Article, error) {
 	return articles, nil
 }
 
-func (s *articleService) GetArticleBySlug(slug string) (Article, error) {
-	ctx := context.Background()
+func (s *articleService) GetArticleBySlug(ctx context.Context, slug string) (Article, error) {
 	cacheKey := cacheKeyArticlePrefix + slug
 	var article Article
 
@@ -90,7 +89,7 @@ func (s *articleService) GetArticleBySlug(slug string) (Article, error) {
 	}
 
 	log.Printf("====== [DB] Cache Miss: fetching article slug [%s] from PostgreSQL ======", slug)
-	article, err := s.repo.FindBySlug(slug)
+	article, err := s.repo.FindBySlug(ctx, slug)
 	if err != nil {
 		return Article{}, err
 	}
@@ -99,12 +98,12 @@ func (s *articleService) GetArticleBySlug(slug string) (Article, error) {
 	return article, nil
 }
 
-func (s *articleService) GetArticleByID(id uint) (Article, error) {
-	return s.repo.FindByID(id)
+func (s *articleService) GetArticleByID(ctx context.Context, id uint) (Article, error) {
+	return s.repo.FindByID(ctx, id)
 }
 
-func (s *articleService) UpdateArticle(id uint, req UpdateArticleRequest) (Article, error) {
-	article, err := s.repo.FindByID(id)
+func (s *articleService) UpdateArticle(ctx context.Context, id uint, req UpdateArticleRequest) (Article, error) {
+	article, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return Article{}, err
 	}
@@ -118,31 +117,31 @@ func (s *articleService) UpdateArticle(id uint, req UpdateArticleRequest) (Artic
 	article.ReadTime = req.ReadTime
 	article.Content = req.Content
 
-	err = s.repo.Update(&article)
+	err = s.repo.Update(ctx, &article)
 	if err != nil {
 		return Article{}, err
 	}
 
-	s.clearArticleCache(oldSlug)
+	s.clearArticleCache(ctx, oldSlug)
 	if oldSlug != req.Slug {
-		s.clearArticleCache(req.Slug)
+		s.clearArticleCache(ctx, req.Slug)
 	}
 
 	return article, nil
 }
 
-func (s *articleService) DeleteArticle(id uint) error {
-	article, err := s.repo.FindByID(id)
+func (s *articleService) DeleteArticle(ctx context.Context, id uint) error {
+	article, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	err = s.repo.Delete(id)
+	err = s.repo.Delete(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	s.clearArticleCache(article.Slug)
+	s.clearArticleCache(ctx, article.Slug)
 	return nil
 }
 
@@ -150,7 +149,10 @@ func (s *articleService) getCache(ctx context.Context, key string, dest interfac
 	if s.rdb == nil {
 		return false
 	}
-	cachedData, err := s.rdb.Get(ctx, key).Result()
+	cacheCtx, cancel := context.WithTimeout(ctx, cacheTimeout)
+	defer cancel()
+
+	cachedData, err := s.rdb.Get(cacheCtx, key).Result()
 	if err != nil {
 		return false
 	}
@@ -165,18 +167,29 @@ func (s *articleService) setCache(ctx context.Context, key string, data interfac
 		return
 	}
 	jsonData, err := json.Marshal(data)
-	if err == nil {
-		s.rdb.Set(ctx, key, jsonData, cacheTTL)
+	if err != nil {
+		return
+	}
+	cacheCtx, cancel := context.WithTimeout(ctx, cacheTimeout)
+	defer cancel()
+
+	if err := s.rdb.Set(cacheCtx, key, jsonData, cacheTTL).Err(); err != nil {
+		log.Printf("warning: failed to set redis cache [%s]: %v", key, err)
 	}
 }
 
-func (s *articleService) clearArticleCache(slug string) {
+func (s *articleService) clearArticleCache(ctx context.Context, slug string) {
 	if s.rdb == nil {
 		return
 	}
-	ctx := context.Background()
-	s.rdb.Del(ctx, cacheKeyAllArticles)
+	cacheCtx, cancel := context.WithTimeout(ctx, cacheTimeout)
+	defer cancel()
+
+	keys := []string{cacheKeyAllArticles}
 	if slug != "" {
-		s.rdb.Del(ctx, cacheKeyArticlePrefix+slug)
+		keys = append(keys, cacheKeyArticlePrefix+slug)
+	}
+	if err := s.rdb.Del(cacheCtx, keys...).Err(); err != nil {
+		log.Printf("warning: failed to clear redis cache %v: %v", keys, err)
 	}
 }
